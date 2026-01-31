@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Community Contexts · Mosaic Playground</title>
+    <style>
+      :root {
+        --bg: #08060f;
+        --ink: #f7f1ff;
+        --ink-dim: #bdb2e3;
+        --neon-pink: #ff2d95;
+        --neon-cyan: #24f6ff;
+        --neon-lime: #c7ff2a;
+        --card: rgba(13, 10, 24, 0.92);
+        --card-border: rgba(255, 255, 255, 0.14);
+        --glow: 0 0 40px rgba(255, 45, 149, 0.2), 0 0 60px rgba(36, 246, 255, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Cooper Black", "Palatino Linotype", "Book Antiqua", "Palatino", serif;
+        color: var(--ink);
+        background:
+          radial-gradient(800px 520px at 8% 0%, rgba(255, 45, 149, 0.25), transparent 55%),
+          radial-gradient(900px 600px at 85% 10%, rgba(36, 246, 255, 0.2), transparent 60%),
+          radial-gradient(600px 500px at 60% 90%, rgba(199, 255, 42, 0.18), transparent 55%),
+          linear-gradient(160deg, #07060c, #0b0720 40%, #0e0b1a 100%);
+        min-height: 100vh;
+      }
+
+      .page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 48px 22px 80px;
+      }
+
+      header {
+        display: grid;
+        gap: 12px;
+        margin-bottom: 28px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2.2rem, 4vw, 3.8rem);
+        letter-spacing: 0.6px;
+        text-shadow: 0 0 12px rgba(255, 45, 149, 0.4);
+      }
+
+      .subhead {
+        margin: 0;
+        color: var(--ink-dim);
+        font-size: clamp(1rem, 1.4vw, 1.2rem);
+        max-width: 640px;
+        line-height: 1.6;
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .chip {
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(10, 8, 18, 0.8);
+      }
+
+      .chip.neon {
+        color: var(--neon-cyan);
+        border-color: rgba(36, 246, 255, 0.5);
+        box-shadow: 0 0 14px rgba(36, 246, 255, 0.2);
+      }
+
+      .mosaic {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        grid-auto-rows: 72px;
+        gap: 14px;
+      }
+
+      .tile {
+        position: relative;
+        background: var(--card);
+        border-radius: 18px;
+        border: 1px solid var(--card-border);
+        padding: 16px;
+        overflow: hidden;
+        box-shadow: var(--glow);
+        animation: floatIn 800ms ease forwards;
+        opacity: 0;
+        transform: translateY(16px);
+        animation-delay: calc(var(--i) * 90ms);
+      }
+
+      .tile::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(320px 220px at 80% 0%, rgba(255, 255, 255, 0.08), transparent 60%);
+        pointer-events: none;
+      }
+
+      .tile h2 {
+        margin: 0 0 6px;
+        font-size: 1.1rem;
+      }
+
+      .tile p {
+        margin: 0;
+        color: var(--ink-dim);
+        line-height: 1.5;
+        font-size: 0.92rem;
+      }
+
+      .stamp {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        font-size: 0.7rem;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(255, 45, 149, 0.2);
+        color: var(--neon-pink);
+        border: 1px solid rgba(255, 45, 149, 0.6);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+
+      .timeline {
+        margin-top: 10px;
+        display: grid;
+        gap: 8px;
+        font-size: 0.8rem;
+        color: var(--ink-dim);
+        font-family: "Courier New", monospace;
+      }
+
+      .timeline span {
+        color: var(--neon-lime);
+      }
+
+      .tile.large {
+        grid-column: span 6;
+        grid-row: span 3;
+      }
+
+      .tile.tall {
+        grid-column: span 3;
+        grid-row: span 4;
+      }
+
+      .tile.wide {
+        grid-column: span 5;
+        grid-row: span 2;
+      }
+
+      .tile.small {
+        grid-column: span 3;
+        grid-row: span 2;
+      }
+
+      .tile.ribbon {
+        grid-column: span 7;
+        grid-row: span 2;
+        border: 1px dashed rgba(255, 255, 255, 0.25);
+        background: rgba(10, 8, 18, 0.6);
+      }
+
+      .orb {
+        position: absolute;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        filter: blur(0.5px);
+        opacity: 0.6;
+        mix-blend-mode: screen;
+      }
+
+      .orb.one {
+        background: radial-gradient(circle, rgba(255, 45, 149, 0.6), transparent 60%);
+        top: -30px;
+        left: -30px;
+      }
+
+      .orb.two {
+        background: radial-gradient(circle, rgba(36, 246, 255, 0.6), transparent 60%);
+        bottom: -40px;
+        right: -20px;
+      }
+
+      .legend {
+        margin-top: 26px;
+        display: grid;
+        gap: 8px;
+        color: var(--ink-dim);
+        font-size: 0.85rem;
+      }
+
+      .legend strong {
+        color: var(--neon-cyan);
+      }
+
+      @keyframes floatIn {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (max-width: 900px) {
+        .mosaic {
+          grid-template-columns: repeat(6, 1fr);
+          grid-auto-rows: 88px;
+        }
+
+        .tile.large,
+        .tile.ribbon {
+          grid-column: span 6;
+        }
+
+        .tile.wide {
+          grid-column: span 6;
+        }
+
+        .tile.tall,
+        .tile.small {
+          grid-column: span 3;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .page {
+          padding: 36px 18px 60px;
+        }
+
+        .mosaic {
+          grid-template-columns: repeat(4, 1fr);
+          grid-auto-rows: 92px;
+        }
+
+        .tile.large,
+        .tile.wide,
+        .tile.ribbon {
+          grid-column: span 4;
+        }
+
+        .tile.tall,
+        .tile.small {
+          grid-column: span 2;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .tile {
+          animation: none;
+          opacity: 1;
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header>
+        <div class="chip-row">
+          <div class="chip neon">Weird Surreal</div>
+          <div class="chip">Meme Lab</div>
+          <div class="chip">Community Contexts</div>
+          <div class="chip">Mosaic Wall</div>
+        </div>
+        <h1>Context Stormboard</h1>
+        <p class="subhead">
+          A neon meme lab where community events drift across a mosaic wall. Each tile
+          is a time-boxed context capsule to inspire captions, duels, and remix waves.
+        </p>
+      </header>
+
+      <section class="mosaic">
+        <article class="tile large" style="--i: 1">
+          <div class="orb one"></div>
+          <div class="orb two"></div>
+          <div class="stamp">Now</div>
+          <h2>Midnight Laundry Rally</h2>
+          <p>
+            A sudden campus ritual: everyone loads the machines at once. The vibe is
+            oddly heroic. Create captions that treat socks like sacred relics.
+          </p>
+          <div class="timeline">
+            <div><span>Window:</span> 11:30 PM – 1:30 AM</div>
+            <div><span>Priority:</span> 9 / 10</div>
+            <div><span>Tags:</span> night-owl, dorm-core, surreal</div>
+          </div>
+        </article>
+
+        <article class="tile tall" style="--i: 2">
+          <div class="stamp">Hot</div>
+          <h2>Elevator Prophecy</h2>
+          <p>
+            The elevator pauses between floors and everyone whispers a prediction.
+            The best prophecy wins a hallway crown.
+          </p>
+        </article>
+
+        <article class="tile wide" style="--i: 3">
+          <div class="stamp">Trending</div>
+          <h2>Robot Mascot Sighting</h2>
+          <p>
+            The campus mascot is replaced by a suspiciously polite robot. People keep
+            trying to get it to blink.
+          </p>
+        </article>
+
+        <article class="tile small" style="--i: 4">
+          <h2>Library Whisper Club</h2>
+          <p>Membership only if you can whisper a meme without laughing.</p>
+        </article>
+
+        <article class="tile ribbon" style="--i: 5">
+          <h2>Context Ripple Log</h2>
+          <p>
+            Draw a thin line through every event: when one ends, it echoes into the
+            next. This ribbon becomes your “what’s next” generator.
+          </p>
+        </article>
+
+        <article class="tile small" style="--i: 6">
+          <h2>Feral Group Chat Hour</h2>
+          <p>Officially scheduled chaos. Unofficially the best ideas spawn here.</p>
+        </article>
+
+        <article class="tile wide" style="--i: 7">
+          <div class="stamp">New</div>
+          <h2>Sunrise Vending Machine Opera</h2>
+          <p>
+            The snack machine sings if you buy the neon chips. Nobody believes you
+            until 6:07 AM.
+          </p>
+        </article>
+
+        <article class="tile small" style="--i: 8">
+          <h2>Sidewalk Chalk Lab</h2>
+          <p>Every square must become a mini meme. The floor is a timeline now.</p>
+        </article>
+      </section>
+
+      <section class="legend">
+        <div><strong>Mood:</strong> weird-surreal with neon moodlighting.</div>
+        <div><strong>Theme:</strong> meme lab; each tile is a context experiment.</div>
+        <div><strong>Use:</strong> swap in real `community_contexts` records.</div>
+      </section>
+    </main>
+  </body>
+</html>

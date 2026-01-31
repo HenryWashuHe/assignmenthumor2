@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Layout Density Playground</title>
+    <style>
+      :root {
+        --bg: #0b0b12;
+        --neon-pink: #ff2d95;
+        --neon-cyan: #24f6ff;
+        --neon-lime: #c7ff2a;
+        --ink: #f7f3ff;
+        --ink-dim: #c7c1dd;
+        --card: rgba(18, 16, 32, 0.9);
+        --card-border: rgba(255, 255, 255, 0.12);
+        --shadow: 0 18px 60px rgba(0, 0, 0, 0.4);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: radial-gradient(1200px 600px at 10% 10%, #1a123a 0%, transparent 60%),
+          radial-gradient(900px 500px at 90% 0%, #0a3f52 0%, transparent 60%),
+          linear-gradient(120deg, #0a0b16 0%, #0f0b1f 40%, #0c0f1a 100%);
+        color: var(--ink);
+        font-family: "Cooper Black", "Palatino Linotype", "Book Antiqua", "Palatino", serif;
+        min-height: 100vh;
+      }
+
+      .page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 48px 24px 80px;
+        position: relative;
+      }
+
+      .hero {
+        display: grid;
+        gap: 16px;
+        text-align: left;
+        margin-bottom: 32px;
+      }
+
+      .hero h1 {
+        font-size: clamp(2rem, 3.4vw, 3.6rem);
+        margin: 0;
+        letter-spacing: 0.5px;
+      }
+
+      .hero p {
+        margin: 0;
+        font-size: clamp(1rem, 1.4vw, 1.2rem);
+        color: var(--ink-dim);
+        max-width: 620px;
+        line-height: 1.6;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 20px;
+      }
+
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        border-radius: 18px;
+        padding: 18px;
+        box-shadow: var(--shadow);
+        position: relative;
+        overflow: hidden;
+        animation: rise 700ms ease forwards;
+        opacity: 0;
+        transform: translateY(12px);
+        animation-delay: calc(var(--i) * 80ms);
+      }
+
+      .panel::after {
+        content: "";
+        position: absolute;
+        inset: -40% 50% auto -40%;
+        height: 120%;
+        background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+        transform: rotate(18deg);
+        pointer-events: none;
+      }
+
+      .panel h2 {
+        margin: 0 0 6px;
+        font-size: 1.2rem;
+      }
+
+      .panel .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--neon-cyan);
+      }
+
+      .mini {
+        margin-top: 14px;
+        border-radius: 12px;
+        padding: 12px;
+        background: rgba(9, 8, 20, 0.8);
+        border: 1px dashed rgba(255, 255, 255, 0.15);
+        display: grid;
+        gap: 10px;
+        min-height: 180px;
+      }
+
+      .tile {
+        border-radius: 10px;
+        background: linear-gradient(140deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        position: relative;
+      }
+
+      .tile::before {
+        content: "";
+        position: absolute;
+        inset: 8px;
+        border-radius: 6px;
+        background: linear-gradient(120deg, rgba(255, 45, 149, 0.25), rgba(36, 246, 255, 0.15));
+        opacity: 0.8;
+      }
+
+      .airy .mini {
+        grid-template-rows: 1fr 0.7fr;
+      }
+
+      .airy .tile:first-child {
+        min-height: 90px;
+      }
+
+      .dense .mini {
+        grid-template-columns: repeat(3, 1fr);
+        grid-auto-rows: 56px;
+        gap: 6px;
+      }
+
+      .dense .tile::before {
+        inset: 6px;
+      }
+
+      .cards .mini {
+        grid-template-columns: repeat(2, 1fr);
+        grid-auto-rows: 70px;
+      }
+
+      .timeline .mini {
+        grid-template-rows: repeat(4, 1fr);
+      }
+
+      .timeline .tile {
+        border-left: 3px solid var(--neon-pink);
+        padding-left: 10px;
+      }
+
+      .spotlight .mini {
+        grid-template-columns: 2fr 1fr;
+        grid-template-rows: repeat(2, 1fr);
+        grid-auto-flow: dense;
+      }
+
+      .spotlight .tile:first-child {
+        grid-row: span 2;
+        min-height: 120px;
+      }
+
+      .split .mini {
+        grid-template-columns: 1fr 1.4fr;
+        grid-auto-rows: 60px;
+      }
+
+      .split .tile:nth-child(odd) {
+        background: linear-gradient(140deg, rgba(199, 255, 42, 0.25), rgba(255, 255, 255, 0));
+      }
+
+      .mosaic .mini {
+        grid-template-columns: repeat(4, 1fr);
+        grid-auto-rows: 48px;
+        grid-auto-flow: dense;
+      }
+
+      .mosaic .tile:nth-child(1) {
+        grid-column: span 2;
+        grid-row: span 2;
+      }
+
+      .mosaic .tile:nth-child(4) {
+        grid-column: span 2;
+      }
+
+      .posters .mini {
+        grid-template-rows: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      .posters .tile {
+        min-height: 70px;
+        border: 2px solid rgba(255, 255, 255, 0.18);
+      }
+
+      .posters .tile::before {
+        background: linear-gradient(120deg, rgba(255, 45, 149, 0.3), rgba(199, 255, 42, 0.2));
+      }
+
+      .legend {
+        margin-top: 28px;
+        display: grid;
+        gap: 12px;
+        color: var(--ink-dim);
+        font-family: "Courier New", monospace;
+        font-size: 0.85rem;
+      }
+
+      .legend span {
+        color: var(--neon-lime);
+      }
+
+      @keyframes rise {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (max-width: 720px) {
+        .page {
+          padding: 36px 18px 64px;
+        }
+
+        .hero {
+          text-align: left;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .panel {
+          animation: none;
+          opacity: 1;
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <h1>Layout Density Playground</h1>
+        <p>
+          Neon pop + quirky slab. Each panel is a different layout density, shown as a
+          mini mock. Pick the vibe that feels right for your app.
+        </p>
+      </section>
+
+      <section class="grid">
+        <article class="panel airy" style="--i: 1">
+          <div class="tag">Option A</div>
+          <h2>Airy Gallery</h2>
+          <div class="mini">
+            <div class="tile"></div>
+            <div class="tile"></div>
+          </div>
+        </article>
+
+        <article class="panel dense" style="--i: 2">
+          <div class="tag">Option B</div>
+          <h2>Dense Zine</h2>
+          <div class="mini">
+            <div class="tile"></div>
+            <div class="tile"></div>
+            <div class="tile"></div>
+            <div class="tile"></div>
+            <div class="tile"></div>
+            <div class="tile"></div>
+            <div class="tile"></div>
+            <div class="tile"></div>
+            <div class="tile"></div>
+          </div>
+        </article>
+
+        <article class="panel cards" style="--i: 3">
+          <div class="tag">Option C</div>
+          <h2>Modular Cards</h2>
+          <div class="mini">
+            <div class="tile"></div>
+            <div class="tile"></div>
+            <div class="tile"></div>
+            <div class="tile"></div>
+          </div>
+        </article>
+
+        <article class="panel timeline" style="--i: 4">
+          <div class="tag">Option D</div>
+          <h2>Timeline Feed</h2>
+          <div class="mini">
+            <div class="tile"></div>
+            <div class="tile"></div>
+            <div class="tile"></div>
+            <div class="tile"></div>
+          </div>
+        </article>
+
+        <article class="panel spotlight" style="--i: 5">
+          <div class="tag">Option E</div>
+          <h2>Spotlight Stages</h2>
+          <div class="mini">
+            <div class="tile"></div>
+            <div class="tile"></div>
+            <div class="tile"></div>
+          </div>
+        </article>
+
+        <article class="panel split" style="--i: 6">
+          <div class="tag">Option F</div>
+          <h2>Split-Scene</h2>
+          <div class="mini">
+            <div class="tile"></div>
+            <div class="tile"></div>
+            <div class="tile"></div>
+            <div class="tile"></div>
+          </div>
+        </article>
+
+        <article class="panel mosaic" style="--i: 7">
+          <div class="tag">Option G</div>
+          <h2>Mosaic Wall</h2>
+          <div class="mini">
+            <div class="tile"></div>
+            <div class="tile"></div>
+            <div class="tile"></div>
+            <div class="tile"></div>
+            <div class="tile"></div>
+            <div class="tile"></div>
+          </div>
+        </article>
+
+        <article class="panel posters" style="--i: 8">
+          <div class="tag">Option H</div>
+          <h2>Stacked Posters</h2>
+          <div class="mini">
+            <div class="tile"></div>
+            <div class="tile"></div>
+            <div class="tile"></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="legend">
+        <div><span>Tip:</span> swap any panel into your app as a base layout and theme it with captions/images.</div>
+        <div><span>Motion:</span> panels reveal on load with a staggered rise.</div>
+      </section>
+    </main>
+  </body>
+</html>
