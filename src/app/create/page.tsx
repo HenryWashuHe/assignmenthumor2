@@ -2,6 +2,7 @@ import Link from "next/link";
 import styles from "./page.module.css";
 import CaptionForge from "./CaptionForge";
 import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/lib/supabase/server";
 
 export const revalidate = 0;
 
@@ -47,6 +48,11 @@ async function getHumorFlavors(): Promise<HumorFlavorRow[]> {
 }
 
 export default async function CreateCaption() {
+  const serverSupabase = await createClient();
+  const {
+    data: { user },
+  } = await serverSupabase.auth.getUser();
+
   const [images, flavors] = await Promise.all([
     getImages(),
     getHumorFlavors(),
@@ -68,7 +74,12 @@ export default async function CreateCaption() {
         </section>
 
         {hasSupabaseEnv ? (
-          <CaptionForge images={images} flavors={flavors} />
+          <CaptionForge
+            images={images}
+            flavors={flavors}
+            userId={user?.id ?? null}
+            userEmail={user?.email ?? null}
+          />
         ) : (
           <div className={styles.panel}>
             Missing Supabase env keys. Add{" "}

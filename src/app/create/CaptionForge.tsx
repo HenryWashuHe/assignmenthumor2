@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import styles from "./page.module.css";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/lib/supabase/client";
 
 interface ImageRow {
   id: string;
@@ -20,9 +20,16 @@ interface HumorFlavorRow {
 interface CaptionForgeProps {
   images: ImageRow[];
   flavors: HumorFlavorRow[];
+  userId: string | null;
+  userEmail: string | null;
 }
 
-export default function CaptionForge({ images, flavors }: CaptionForgeProps) {
+export default function CaptionForge({
+  images,
+  flavors,
+  userId,
+  userEmail,
+}: CaptionForgeProps) {
   const [selectedImageId, setSelectedImageId] = useState<string | null>(
     images[0]?.id ?? null
   );
@@ -32,18 +39,6 @@ export default function CaptionForge({ images, flavors }: CaptionForgeProps) {
   const [caption, setCaption] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [isSignedIn, setIsSignedIn] = useState(false);
-
-  useEffect(() => {
-    let isMounted = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!isMounted) return;
-      setIsSignedIn(Boolean(data.session));
-    });
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   const selectedImage = useMemo(
     () => images.find((image) => image.id === selectedImageId) ?? null,
@@ -56,25 +51,18 @@ export default function CaptionForge({ images, flavors }: CaptionForgeProps) {
   );
 
   const canSubmit =
-    Boolean(selectedImageId) && caption.trim().length > 0 && isSignedIn;
+    Boolean(selectedImageId) && caption.trim().length > 0 && Boolean(userId);
 
   const handleSubmit = async () => {
-    if (!canSubmit || busy || !selectedImageId) return;
+    if (!canSubmit || busy || !selectedImageId || !userId) return;
     setBusy(true);
     setStatus(null);
 
-    const { data: session } = await supabase.auth.getSession();
-    const profileId = session.session?.user?.id;
-    if (!profileId) {
-      setStatus("Sign in to submit a caption.");
-      setBusy(false);
-      return;
-    }
-
+    const supabase = createClient();
     const { error } = await supabase.from("captions").insert({
       content: caption.trim(),
       is_public: false,
-      profile_id: profileId,
+      profile_id: userId,
       image_id: selectedImageId,
       humor_flavor_id: selectedFlavorId,
     });
@@ -169,8 +157,11 @@ export default function CaptionForge({ images, flavors }: CaptionForgeProps) {
           >
             Clear draft
           </button>
-          {!isSignedIn && (
+          {!userId && (
             <div className={styles.status}>Sign in to submit.</div>
+          )}
+          {userId && userEmail && (
+            <div className={styles.status}>Signed in as {userEmail}</div>
           )}
           {status && <div className={styles.status}>{status}</div>}
         </div>
