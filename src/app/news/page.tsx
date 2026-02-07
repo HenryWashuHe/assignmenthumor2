@@ -4,6 +4,8 @@ import { supabase } from "@/lib/supabaseClient";
 
 export const revalidate = 0;
 
+/* ── types ── */
+
 interface NewsEntityRow {
   entity: string;
   entity_type: string;
@@ -19,78 +21,73 @@ interface NewsSnippetRow {
   news_entities: NewsEntityRow[] | null;
 }
 
+interface ContextRow {
+  id: number;
+  content: string | null;
+  community_context_tags: { name: string }[] | null;
+}
+
 const hasSupabaseEnv =
   Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
   Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 const formatDate = (value: string | null) => {
-  if (!value) return "Date unknown";
+  if (!value) return "";
   const date = new Date(value);
   return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
-    year: "numeric",
   });
 };
 
+/* ── data fetchers ── */
+
 async function getNewsSignals(category?: string): Promise<NewsSnippetRow[]> {
   if (!hasSupabaseEnv) return [];
-
   let query = supabase
     .from("news_snippets")
-    .select(
-      `
-      id,
-      headline,
-      category,
-      source_url,
-      priority,
-      created_at,
-      news_entities(entity, entity_type)
-    `
-    )
+    .select("id, headline, category, source_url, priority, created_at, news_entities(entity, entity_type)")
     .eq("is_active", true);
-
-  if (category && category !== "all") {
-    query = query.eq("category", category);
-  }
-
+  if (category && category !== "all") query = query.eq("category", category);
   const { data, error } = await query
     .order("priority", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(24);
-
   if (error || !data) return [];
   return data as NewsSnippetRow[];
 }
 
 async function getCategories(): Promise<string[]> {
   if (!hasSupabaseEnv) return [];
-
   const { data, error } = await supabase
     .from("news_snippets")
     .select("category")
     .eq("is_active", true)
     .order("category", { ascending: true })
     .limit(200);
-
   if (error || !data) return [];
   const set = new Set<string>();
-  data.forEach((row) => {
-    if (row.category) set.add(row.category);
-  });
+  data.forEach((r) => { if (r.category) set.add(r.category); });
   return Array.from(set);
 }
 
-const entityTypeClass = (type: string) => {
-  const normalized = type.toLowerCase();
-  if (normalized === "person") return styles.typePerson;
-  if (normalized === "org") return styles.typeOrg;
-  if (normalized === "place") return styles.typePlace;
-  if (normalized === "event") return styles.typeEvent;
-  if (normalized === "product") return styles.typeProduct;
-  if (normalized === "acronym") return styles.typeAcronym;
-  return styles.typeOther;
+async function getRecentContexts(): Promise<ContextRow[]> {
+  if (!hasSupabaseEnv) return [];
+  const { data } = await supabase
+    .from("community_contexts")
+    .select("id, content, community_context_tags(name)")
+    .order("created_datetime_utc", { ascending: false })
+    .limit(3);
+  return (data ?? []) as unknown as ContextRow[];
+}
+
+const entityColor: Record<string, string> = {
+  person: "var(--accent)",
+  org: "#6B8E6B",
+  place: "#8B7355",
+  event: "#7B68AE",
+  product: "#5A8FA8",
+  acronym: "var(--ink-tertiary)",
 };
 
 const normalizeCategory = (value?: string | string[]) => {
@@ -99,169 +96,154 @@ const normalizeCategory = (value?: string | string[]) => {
   return value;
 };
 
-export default async function Home({
+/* ── page ── */
+
+export default async function FeedPage({
   searchParams,
 }: {
   searchParams?: Promise<{ category?: string | string[] }>;
 }) {
   const resolvedParams = await searchParams;
   const selectedCategory = normalizeCategory(resolvedParams?.category);
-  const [signals, categories] = await Promise.all([
+  const [signals, categories, contexts] = await Promise.all([
     getNewsSignals(selectedCategory),
     getCategories(),
+    getRecentContexts(),
   ]);
 
   return (
     <div className={styles.page}>
       <main className={styles.main}>
-        <nav className={styles.topNav}>
-          <Link className={styles.backLink} href="/">
-            ← Back to home
-          </Link>
-          <Link className={styles.backLink} href="/caption-lab">
-            Caption lab →
-          </Link>
-        </nav>
-        <header className={styles.hero}>
-          <div className={styles.kicker}>Retro Signal Desk</div>
-          <h1 className={styles.title}>Campus News Signal Roll</h1>
-          <p className={styles.subhead}>
-            A poster-wall list of active snippets, spliced with their named
-            entities. Headlines lead, tags follow. Fresh pulls, no fluff.
+        {/* Header */}
+        <header className={styles.header}>
+          <h1 className={styles.title}>The Feed</h1>
+          <p className={styles.subtitle}>
+            Campus headlines and tagged entities. Filtered by category,
+            sorted by priority.
           </p>
-          <div className={styles.metaRow}>
-            <span>Active Snippets</span>
-            <span>Entity Threads</span>
-            <span>Priority Sorted</span>
-          </div>
         </header>
 
-        <section className={styles.filterRow}>
+        {/* Filter bar */}
+        <div className={styles.filterBar}>
           <form className={styles.filterForm} method="get">
-            <label className={styles.filterLabel} htmlFor="categoryFilter">
-              Filter by category
-            </label>
             <select
-              id="categoryFilter"
               name="category"
               className={styles.filterSelect}
               defaultValue={selectedCategory}
             >
               <option value="all">All categories</option>
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
+              {categories.map((c) => (
+                <option key={c} value={c}>{c}</option>
               ))}
             </select>
-            <button className={styles.filterButton} type="submit">
-              Apply
-            </button>
+            <button className={styles.filterBtn} type="submit">Filter</button>
             {selectedCategory !== "all" && (
-              <a className={styles.filterReset} href="/news">
-                Reset
-              </a>
+              <a className={styles.filterReset} href="/news">Clear</a>
             )}
           </form>
-          <div className={styles.filterSummary}>
-            Showing{" "}
-            <strong>{selectedCategory === "all" ? "all" : selectedCategory}</strong>
-          </div>
-        </section>
+          <span className={styles.filterCount}>
+            {signals.length} headline{signals.length !== 1 ? "s" : ""}
+          </span>
+        </div>
 
-        {signals.length === 0 ? (
-          <section className={styles.empty}>
-            {hasSupabaseEnv ? (
-              <p>
-                No active snippets yet. Add rows to{" "}
-                <code>news_snippets</code> and <code>news_entities</code>.
-              </p>
+        <div className={styles.contentGrid}>
+          {/* Main feed */}
+          <div className={styles.feed}>
+            {signals.length === 0 ? (
+              <div className={styles.empty}>
+                {hasSupabaseEnv
+                  ? <p>No active headlines. Add rows to <code>news_snippets</code>.</p>
+                  : <p>Missing Supabase env keys.</p>}
+              </div>
             ) : (
-              <p>
-                Missing Supabase env keys. Add{" "}
-                <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
-                <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to{" "}
-                <code>.env.local</code>.
-              </p>
-            )}
-          </section>
-        ) : (
-          <section className={styles.list}>
-            {signals.map((signal, index) => {
-              const entities = signal.news_entities ?? [];
-              const CardTag = signal.source_url ? "a" : "article";
-              const cardProps = signal.source_url
-                ? {
-                    href: signal.source_url,
-                    target: "_blank",
-                    rel: "noreferrer",
-                    "aria-label": `Open source for ${signal.headline}`,
-                  }
-                : {};
-              return (
-                <CardTag
-                  key={signal.id}
-                  className={`${styles.card} ${
-                    signal.source_url ? styles.cardLink : styles.cardStatic
-                  }`}
-                  style={{ animationDelay: `${index * 80}ms` }}
-                  {...cardProps}
-                >
-                  <div className={styles.cardHeader}>
-                    <div className={styles.cardIndex}>
-                      {String(index + 1).padStart(2, "0")}
+              signals.map((signal) => {
+                const entities = signal.news_entities ?? [];
+                const isLinked = Boolean(signal.source_url);
+                const Wrapper = isLinked ? "a" : "article";
+                const wrapperProps = isLinked
+                  ? { href: signal.source_url!, target: "_blank", rel: "noreferrer" }
+                  : {};
+                return (
+                  <Wrapper
+                    key={signal.id}
+                    className={`${styles.card} ${isLinked ? styles.cardLinked : ""}`}
+                    {...wrapperProps}
+                  >
+                    <div className={styles.cardTop}>
+                      <span className={styles.cardCategory}>{signal.category}</span>
+                      <span className={styles.cardDate}>{formatDate(signal.created_at)}</span>
                     </div>
-                    <div className={styles.cardMeta}>
-                      <span className={styles.category}>{signal.category}</span>
-                      <span className={styles.date}>
-                        {formatDate(signal.created_at)}
-                      </span>
-                    </div>
-                    <div className={styles.priority}>
-                      Priority {signal.priority ?? "?"}
-                    </div>
-                  </div>
-                  <h2 className={styles.headline}>{signal.headline}</h2>
-                  {entities.length > 0 ? (
-                    <div className={styles.entities}>
-                      {entities.map((entity, entityIndex) => (
-                        <span
-                          key={`${signal.id}-${entity.entity}-${entityIndex}`}
-                          className={`${styles.entityChip} ${entityTypeClass(
-                            entity.entity_type
-                          )}`}
-                        >
-                          <span className={styles.entityLabel}>
-                            {entity.entity}
+                    <h2 className={styles.cardHeadline}>{signal.headline}</h2>
+                    {entities.length > 0 && (
+                      <div className={styles.cardEntities}>
+                        {entities.map((ent, i) => (
+                          <span
+                            key={`${signal.id}-${ent.entity}-${i}`}
+                            className={styles.entityTag}
+                            style={{ color: entityColor[ent.entity_type.toLowerCase()] ?? "var(--ink-tertiary)" }}
+                          >
+                            {ent.entity}
+                            <span className={styles.entityType}>{ent.entity_type}</span>
                           </span>
-                          <span className={styles.entityType}>
-                            {entity.entity_type}
-                          </span>
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className={styles.entitiesEmpty}>
-                      No entities tagged yet.
-                    </div>
-                  )}
-                  <div className={styles.footerRow}>
-                    <span className={styles.sourceLabel}>
-                      {signal.source_url ? "Source ready" : "No source link"}
-                    </span>
-                    {signal.source_url ? (
-                      <span className={styles.sourceLink}>Open source →</span>
-                    ) : (
-                      <span className={styles.sourceLinkDisabled}>
-                        Open source →
-                      </span>
+                        ))}
+                      </div>
                     )}
+                    {isLinked && (
+                      <span className={styles.cardSource}>Read source &rarr;</span>
+                    )}
+                  </Wrapper>
+                );
+              })
+            )}
+          </div>
+
+          {/* Sidebar: Community context */}
+          <aside className={styles.sidebar}>
+            <div className={styles.sidebarSection}>
+              <h3 className={styles.sidebarTitle}>Community Context</h3>
+              <p className={styles.sidebarDesc}>
+                What&apos;s happening on campus that shapes humor right now.
+              </p>
+              {contexts.length === 0 ? (
+                <p className={styles.sidebarEmpty}>No contexts available.</p>
+              ) : (
+                contexts.map((ctx) => {
+                  const tags = (ctx.community_context_tags ?? []).map((t) =>
+                    typeof t === "object" ? (t as { name: string }).name : String(t)
+                  );
+                  return (
+                    <div key={ctx.id} className={styles.contextItem}>
+                      <p className={styles.contextText}>
+                        {(ctx.content ?? "").length > 180
+                          ? (ctx.content ?? "").slice(0, 180) + "..."
+                          : ctx.content}
+                      </p>
+                      {tags.length > 0 && (
+                        <div className={styles.contextTags}>
+                          {tags.map((tag) => (
+                            <span key={tag} className={styles.contextTag}>{tag}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className={styles.sidebarSection}>
+              <h3 className={styles.sidebarTitle}>Entity legend</h3>
+              <div className={styles.legendList}>
+                {Object.entries(entityColor).map(([type, color]) => (
+                  <div key={type} className={styles.legendItem}>
+                    <span className={styles.legendDot} style={{ background: color }} />
+                    <span className={styles.legendLabel}>{type}</span>
                   </div>
-                </CardTag>
-              );
-            })}
-          </section>
-        )}
+                ))}
+              </div>
+            </div>
+          </aside>
+        </div>
       </main>
     </div>
   );

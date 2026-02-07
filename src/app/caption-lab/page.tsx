@@ -1,235 +1,158 @@
 import Link from "next/link";
 import styles from "./page.module.css";
 import { supabase } from "@/lib/supabaseClient";
+import GalleryDeck from "./GalleryDeck";
 
 export const revalidate = 0;
+
+/* ── types ── */
 
 interface CaptionRow {
   id: string;
   content: string | null;
   like_count: number | null;
-  is_public: boolean;
   created_datetime_utc: string | null;
+  humor_flavors: { slug: string } | null;
   images:
     | { url: string | null; image_description: string | null }
     | { url: string | null; image_description: string | null }[]
     | null;
 }
 
+interface CaptionExampleRow {
+  id: number;
+  caption: string;
+  explanation: string;
+  image_description: string;
+}
+
 const hasSupabaseEnv =
   Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
   Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
-const shuffleWithSeed = <T,>(items: T[], seed: number) => {
-  const result = [...items];
-  let state = seed % 2147483647;
-  if (state <= 0) state += 2147483646;
+/* ── data fetchers ── */
 
-  const next = () => {
-    state = (state * 48271) % 2147483647;
-    return state / 2147483647;
-  };
-
-  for (let i = result.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(next() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-  return result;
-};
-
-async function getCaptionPanels(
-  seed: number,
-  mode: "shuffle" | "top"
-): Promise<CaptionRow[]> {
+async function getCaptions(mode: "top" | "recent"): Promise<CaptionRow[]> {
   if (!hasSupabaseEnv) return [];
-
-  let query = supabase
+  const orderCol = mode === "top" ? "like_count" : "created_datetime_utc";
+  const { data, error } = await supabase
     .from("captions")
-    .select(
-      `
-      id,
-      content,
-      like_count,
-      is_public,
-      created_datetime_utc,
-      images(url, image_description)
-    `
-    )
-    .eq("is_public", true);
-
-  if (mode === "top") {
-    query = query.order("like_count", { ascending: false });
-  } else {
-    query = query.order("created_datetime_utc", { ascending: false });
-  }
-
-  const { data, error } = await query.limit(200);
-
+    .select("id, content, like_count, created_datetime_utc, humor_flavors(slug), images(url, image_description)")
+    .eq("is_public", true)
+    .order(orderCol, { ascending: false })
+    .limit(200);
   if (error || !data) return [];
-  const withImages = (data as CaptionRow[]).filter((caption) => {
-    const image = Array.isArray(caption.images)
-      ? caption.images[0]
-      : caption.images ?? null;
-    return Boolean(image?.url);
+  return (data as unknown as CaptionRow[]).filter((c) => {
+    const img = Array.isArray(c.images) ? c.images[0] : c.images;
+    return Boolean(img?.url);
   });
-  if (mode === "top") {
-    return withImages.slice(0, 18);
-  }
-  const shuffled = shuffleWithSeed(withImages, seed);
-  return shuffled.slice(0, 18);
 }
 
-const panelClasses = [
-  styles.panelWide,
-  styles.panelTall,
-  styles.panelSquare,
-  styles.panelWide,
-  styles.panelSquare,
-  styles.panelTall,
-  styles.panelSquare,
-  styles.panelWide,
-];
-
-const buildLayout = (length: number, seed: number) => {
-  const base = shuffleWithSeed(panelClasses, seed);
-  const result: string[] = [];
-  while (result.length < length) {
-    result.push(...base);
-  }
-  return result.slice(0, length);
-};
-
-const normalizeSeed = (value?: string | string[]) => {
-  const raw = Array.isArray(value) ? value[0] : value;
-  const parsed = raw ? Number(raw) : NaN;
-  return Number.isFinite(parsed) ? parsed : Date.now();
-};
+async function getExamples(): Promise<CaptionExampleRow[]> {
+  if (!hasSupabaseEnv) return [];
+  const { data } = await supabase
+    .from("caption_examples")
+    .select("id, caption, explanation, image_description")
+    .order("priority", { ascending: false })
+    .limit(3);
+  return (data ?? []) as CaptionExampleRow[];
+}
 
 const normalizeMode = (value?: string | string[]) => {
   const raw = Array.isArray(value) ? value[0] : value;
-  return raw === "top" ? "top" : "shuffle";
+  return raw === "recent" ? "recent" : "top";
 };
 
-export default async function CaptionLab({
+/* ── page ── */
+
+export default async function GalleryPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ seed?: string | string[]; mode?: string }>;
+  searchParams?: Promise<{ mode?: string | string[] }>;
 }) {
   const resolvedParams = await searchParams;
-  const seed = normalizeSeed(resolvedParams?.seed);
   const mode = normalizeMode(resolvedParams?.mode);
-  const hasSeedParam =
-    resolvedParams?.seed !== undefined &&
-    resolvedParams?.seed !== null &&
-    resolvedParams?.seed !== "";
-  const nextSeed = Date.now();
-  const panels = await getCaptionPanels(seed, mode);
-  const layout = buildLayout(panels.length, seed);
+  const [captions, examples] = await Promise.all([
+    getCaptions(mode),
+    getExamples(),
+  ]);
+  const normalizedCaptions = captions.map((caption) => ({
+    id: caption.id,
+    content: caption.content,
+    like_count: caption.like_count,
+    humor_flavors: caption.humor_flavors,
+    image: Array.isArray(caption.images)
+      ? caption.images[0]
+      : caption.images ?? null,
+  }));
+  const primaryCaptions = normalizedCaptions.slice(0, 24);
 
   return (
     <div className={styles.page}>
       <main className={styles.main}>
-        <nav className={styles.topNav}>
-          <Link className={styles.backLink} href="/">
-            ← Back to home
-          </Link>
-          <Link className={styles.backLink} href="/news">
-            News signals →
-          </Link>
-        </nav>
-        <header className={styles.hero}>
-          <div className={styles.kicker}>Caption Lab</div>
-          <h1 className={styles.title}>Comic Panel Caption Runs</h1>
-          <p className={styles.subhead}>
-            A rotating grid of captions pulled from Supabase, stitched to their
-            related images and flavor tags. Tap a panel, scan the punchline.
+        <header className={styles.header}>
+          <h1 className={styles.title}>The Gallery</h1>
+          <p className={styles.subtitle}>
+            {mode === "top" ? "Top liked deck." : "Latest drop."}
           </p>
-          <div className={styles.heroActions}>
-            {mode === "top" ? (
-              <a
-                className={styles.shuffleButton}
-                href={`/caption-lab?seed=${nextSeed}`}
-              >
-                Shuffle batch →
-              </a>
-            ) : (
-              <a
-                className={styles.shuffleButton}
-                href={`/caption-lab?seed=${nextSeed}`}
-              >
-                New batch →
-              </a>
-            )}
-            <a className={styles.topButton} href="/caption-lab?mode=top">
-              View top likes →
+          <div className={`${styles.modeRow} ${styles.headerModeRow}`}>
+            <a
+              href="/caption-lab?mode=top"
+              className={`${styles.modeBtn} ${mode === "top" ? styles.modeBtnActive : ""}`}
+            >
+              Top liked
             </a>
-            <span className={styles.heroHint}>
-              {mode === "top" ? "Sorted by likes." : "Shuffle topics + layout."}
-            </span>
+            <a
+              href="/caption-lab?mode=recent"
+              className={`${styles.modeBtn} ${mode === "recent" ? styles.modeBtnActive : ""}`}
+            >
+              Most recent
+            </a>
+            <Link href="/create" className={styles.writeBtn}>
+              Write yours &rarr;
+            </Link>
+            <Link href="/chaos-wall" className={styles.writeBtn}>
+              Chaos wall &rarr;
+            </Link>
           </div>
         </header>
 
-        {panels.length === 0 ? (
-          <section className={styles.empty}>
-            {hasSupabaseEnv ? (
-              <p>
-                No public captions yet. Add rows to <code>captions</code> and
-                link to <code>images</code>.
-              </p>
-            ) : (
-              <p>
-                Missing Supabase env keys. Add{" "}
-                <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
-                <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to{" "}
-                <code>.env.local</code>.
-              </p>
-            )}
-          </section>
+        {/* Caption gallery */}
+        {primaryCaptions.length === 0 ? (
+          <div className={styles.empty}>
+            {hasSupabaseEnv
+              ? <p>No public captions with images yet.</p>
+              : <p>Missing Supabase env keys.</p>}
+          </div>
         ) : (
-          <section
-            className={`${styles.grid} ${
-              hasSeedParam ? styles.gridShuffle : ""
-            }`}
-          >
-            {panels.map((caption, index) => {
-              const image = Array.isArray(caption.images)
-                ? caption.images[0]
-                : caption.images ?? null;
-              const panelClass = layout[index] ?? styles.panelSquare;
-              return (
-                <article
-                  key={caption.id}
-                  className={`${styles.panel} ${panelClass}`}
-                  style={{ animationDelay: `${index * 70}ms` }}
-                >
-                  <div className={styles.panelTop}>
-                    <span className={styles.panelCount}>
-                      #{String(index + 1).padStart(2, "0")}
+          <GalleryDeck captions={primaryCaptions} />
+        )}
+
+        {examples.length > 0 && (
+          <section className={styles.examplesSection}>
+            <div className={styles.sectionLabel}>
+              <span className={styles.labelLine} />
+              <span className={styles.labelText}>How it&apos;s made</span>
+              <span className={styles.labelLine} />
+            </div>
+            <div className={styles.exampleGrid}>
+              {examples.map((ex) => (
+                <div key={ex.id} className={styles.exampleCard}>
+                  <p className={styles.exampleCaption}>
+                    &ldquo;{ex.caption}&rdquo;
+                  </p>
+                  <details className={styles.exampleDetails}>
+                    <summary>Breakdown</summary>
+                    <p className={styles.exampleExplanation}>
+                      {ex.explanation}
+                    </p>
+                    <span className={styles.exampleContext}>
+                      Image cue: {ex.image_description}
                     </span>
-                    <span className={styles.panelLikes}>
-                      {caption.like_count ?? 0} likes
-                    </span>
-                  </div>
-                  <div className={styles.panelBody}>
-                    <div className={styles.captionBubble}>
-                      <p>
-                        {caption.content ??
-                          "Caption brewing... add content to this panel."}
-                      </p>
-                    </div>
-                    <div className={styles.imageFrame}>
-                      {image?.url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={image.url}
-                          alt={image.image_description ?? "Caption reference"}
-                        />
-                      ) : null}
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+                  </details>
+                </div>
+              ))}
+            </div>
           </section>
         )}
       </main>

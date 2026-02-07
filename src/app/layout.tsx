@@ -16,9 +16,17 @@ const bodyFont = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Context Stormboard",
-  description: "Neon community contexts and lightning caption duels.",
+  title: "The Punchline",
+  description: "A humor magazine for Columbia & Barnard — captions, context, and community wit.",
 };
+
+const navItems = [
+  { href: "/news", label: "Feed" },
+  { href: "/caption-lab", label: "Gallery" },
+  { href: "/chaos-wall", label: "Chaos Wall" },
+  { href: "/create", label: "Studio" },
+  { href: "/genome", label: "The Index" },
+];
 
 export default async function RootLayout({
   children,
@@ -38,60 +46,49 @@ export default async function RootLayout({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "10px 22px",
-            borderBottom: "3px solid #1b1a17",
-            background: "#fff8ea",
-            color: "#1b1a17",
+            padding: "0 var(--page-pad)",
+            height: "56px",
+            borderBottom: "1px solid var(--border)",
+            background: "var(--surface)",
+            position: "sticky",
+            top: 0,
+            zIndex: 100,
           }}
         >
           <Link
             href="/"
             style={{
               fontFamily: "var(--font-display), serif",
-              fontSize: "1.1rem",
-              color: "#1b1a17",
+              fontSize: "1.15rem",
+              color: "var(--ink)",
+              letterSpacing: "-0.01em",
             }}
           >
-            Stormboard
+            The Punchline
           </Link>
 
-          <nav style={{ display: "flex", alignItems: "center", gap: "18px" }}>
-            <Link
-              href="/news"
-              style={{
-                fontSize: "0.8rem",
-                fontWeight: 600,
-                color: "#5a574e",
-                textTransform: "uppercase",
-                letterSpacing: "0.12em",
-              }}
-            >
-              News
-            </Link>
-            <Link
-              href="/caption-lab"
-              style={{
-                fontSize: "0.8rem",
-                fontWeight: 600,
-                color: "#5a574e",
-                textTransform: "uppercase",
-                letterSpacing: "0.12em",
-              }}
-            >
-              Caption Lab
-            </Link>
-            <Link
-              href="/create"
-              style={{
-                fontSize: "0.8rem",
-                fontWeight: 600,
-                color: "#5a574e",
-                textTransform: "uppercase",
-                letterSpacing: "0.12em",
-              }}
-            >
-              Create
-            </Link>
+          <nav
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "28px",
+            }}
+          >
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={{
+                  fontSize: "0.8rem",
+                  fontWeight: 500,
+                  color: "var(--ink-secondary)",
+                  transition: "color 150ms",
+                  letterSpacing: "0.01em",
+                }}
+              >
+                {item.label}
+              </Link>
+            ))}
 
             {user ? (
               <form action="/auth/signout" method="post">
@@ -99,18 +96,18 @@ export default async function RootLayout({
                   type="submit"
                   style={{
                     padding: "5px 14px",
-                    border: "2px solid #1b1a17",
-                    background: "#1b1a17",
-                    color: "#fff8ea",
+                    border: "1px solid var(--border-strong)",
+                    background: "var(--bg)",
+                    color: "var(--ink)",
                     fontSize: "0.75rem",
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.1em",
+                    fontWeight: 600,
                     cursor: "pointer",
                     fontFamily: "inherit",
+                    borderRadius: "var(--radius-sm)",
+                    transition: "border-color 150ms",
                   }}
                 >
-                  Sign out ({user.email})
+                  {user.email?.split("@")[0]}
                 </button>
               </form>
             ) : (
@@ -118,13 +115,13 @@ export default async function RootLayout({
                 href="/login"
                 style={{
                   padding: "5px 14px",
-                  border: "2px solid #1b1a17",
-                  background: "#f5a623",
-                  color: "#1b1a17",
+                  border: "1px solid var(--border-accent)",
+                  background: "var(--accent-light)",
+                  color: "var(--accent)",
                   fontSize: "0.75rem",
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
+                  fontWeight: 600,
+                  borderRadius: "var(--radius-sm)",
+                  transition: "background 150ms",
                 }}
               >
                 Sign in

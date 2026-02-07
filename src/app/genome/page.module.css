@@ -1,0 +1,503 @@
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.main {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 40px var(--page-pad) 96px;
+  display: grid;
+  gap: 28px;
+}
+
+/* ── Header ── */
+
+.header {
+  max-width: 540px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display), serif;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  color: var(--ink);
+}
+
+.subtitle {
+  margin: 10px 0 0;
+  font-size: 0.95rem;
+  color: var(--ink-secondary);
+  line-height: 1.6;
+}
+
+/* ── Dashboard ── */
+
+.dashboard {
+  display: grid;
+  gap: 48px;
+}
+
+/* ── Sections ── */
+
+.section {
+  display: grid;
+  gap: 16px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.sectionDesc {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--ink-secondary);
+  line-height: 1.55;
+}
+
+.zoneSwitcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.zoneBtn {
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-secondary);
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 150ms;
+}
+
+.zoneBtn:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.zoneBtnActive {
+  border-color: var(--ink);
+  color: var(--bg);
+  background: var(--ink);
+}
+
+/* ── Stat row ── */
+
+.statRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.statCard {
+  flex: 1 1 120px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+}
+
+.statVal {
+  font-family: var(--font-display), serif;
+  font-size: 2rem;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--ink-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Flavor rankings ── */
+
+.flavorList {
+  display: grid;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.flavorRow {
+  background: var(--surface);
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 14px;
+  align-items: start;
+  border: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: background 150ms;
+  width: 100%;
+}
+
+.flavorRow:hover { background: var(--bg-warm); }
+.flavorRowOpen { background: var(--bg-warm); }
+
+.flavorRank {
+  font-family: var(--font-display), serif;
+  font-size: 1.1rem;
+  color: var(--ink-faint);
+  text-align: center;
+}
+
+.flavorMain {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.flavorHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.flavorName {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--ink);
+}
+
+.flavorAvg {
+  font-size: 0.78rem;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.flavorBarTrack {
+  height: 6px;
+  background: var(--bg);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.flavorBar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 300ms ease;
+}
+
+.flavorSub {
+  font-size: 0.75rem;
+  color: var(--ink-tertiary);
+}
+
+.flavorExpanded {
+  grid-column: 1 / -1;
+  padding: 12px 0 4px 46px;
+  display: grid;
+  gap: 8px;
+}
+
+.flavorDesc {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ink-secondary);
+  line-height: 1.5;
+}
+
+.flavorQuote {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink);
+  font-style: italic;
+}
+
+/* ── Terms / Lexicon ── */
+
+.termGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.termCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  display: grid;
+  gap: 6px;
+}
+
+.termHead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.termWord {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.termType {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  background: var(--accent-light);
+  color: var(--accent);
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+.termDef {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ink-secondary);
+  line-height: 1.5;
+}
+
+.termEx {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ink-tertiary);
+  line-height: 1.45;
+}
+
+/* ── Celebrity subjects ── */
+
+.celebGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.celebCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: box-shadow 200ms, transform 200ms;
+}
+
+.celebCard:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.celebImg {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  background: var(--bg-warm);
+}
+
+.celebImg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.celebBody {
+  padding: 14px 16px 16px;
+  display: grid;
+  gap: 6px;
+}
+
+.celebHead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.celebRank {
+  font-family: var(--font-display), serif;
+  font-size: 0.9rem;
+  color: var(--ink-faint);
+}
+
+.celebName {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--ink);
+}
+
+.celebStat {
+  font-size: 0.75rem;
+  color: var(--ink-tertiary);
+}
+
+.celebQuote {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ink-secondary);
+  line-height: 1.45;
+  font-style: italic;
+}
+
+.celebFlavor {
+  font-size: 0.65rem;
+  padding: 2px 7px;
+  background: var(--bg-warm);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--ink-secondary);
+  font-weight: 500;
+  width: fit-content;
+}
+
+/* ── Share destinations ── */
+
+.shareList {
+  display: grid;
+  gap: 10px;
+}
+
+.shareRow {
+  display: grid;
+  grid-template-columns: 100px 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.shareName {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.shareBarTrack {
+  height: 8px;
+  background: var(--bg-warm);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.shareBar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+}
+
+.shareCount {
+  font-size: 0.78rem;
+  color: var(--ink-tertiary);
+  white-space: nowrap;
+}
+
+/* ── Hour chart ── */
+
+.hourChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 140px;
+  padding: 0 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 12px 28px;
+}
+
+.hourCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+  position: relative;
+}
+
+.hourBar {
+  width: 100%;
+  min-height: 2px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+  transition: height 300ms ease;
+}
+
+.hourLabel {
+  position: absolute;
+  bottom: -22px;
+  font-size: 0.6rem;
+  color: var(--ink-tertiary);
+  white-space: nowrap;
+}
+
+/* ── Archive / Hall of Fame ── */
+
+.archiveGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.archiveCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.archiveImg {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--bg-warm);
+}
+
+.archiveImg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.archiveBody {
+  padding: 14px 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.archiveCaption {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.archiveMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 0.72rem;
+  color: var(--ink-tertiary);
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 640px) {
+  .statRow { gap: 8px; }
+  .statCard { flex: 1 1 100px; padding: 14px; }
+  .statVal { font-size: 1.5rem; }
+  .celebGrid,
+  .termGrid,
+  .archiveGrid { grid-template-columns: 1fr; }
+  .shareRow { grid-template-columns: 80px 1fr auto; }
+  .hourChart { height: 100px; }
+}

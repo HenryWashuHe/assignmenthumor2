@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
 import { createClient } from "@/lib/supabase/client";
 
@@ -39,6 +39,7 @@ export default function CaptionForge({
   const [caption, setCaption] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1);
 
   const selectedImage = useMemo(
     () => images.find((image) => image.id === selectedImageId) ?? null,
@@ -52,6 +53,66 @@ export default function CaptionForge({
 
   const canSubmit =
     Boolean(selectedImageId) && caption.trim().length > 0 && Boolean(userId);
+  const captionLength = caption.trim().length;
+  const vibe =
+    captionLength < 18
+      ? "Warm-up"
+      : captionLength < 48
+        ? "Punchy"
+        : captionLength < 96
+          ? "Story-mode"
+          : "Epic";
+
+  const promptSeeds = useMemo(() => {
+    const flavorWord = selectedFlavor?.slug ?? "absurd";
+    return [
+      `Breaking: ${flavorWord} experts confirm this is normal.`,
+      `POV: you thought this would be subtle.`,
+      `No one asked, but ${flavorWord} won today.`,
+      `Me acting calm while this scene unfolds.`,
+    ];
+  }, [selectedFlavor]);
+
+  const randomFrom = <T,>(list: T[]): T | null => {
+    if (list.length === 0) return null;
+    return list[Math.floor(Math.random() * list.length)] ?? null;
+  };
+
+  const pickRandomImage = useCallback(() => {
+    const pick = randomFrom(images);
+    if (!pick) return;
+    setSelectedImageId(pick.id);
+  }, [images]);
+
+  const pickRandomFlavor = useCallback(() => {
+    const pick = randomFrom(flavors);
+    if (!pick) return;
+    setSelectedFlavorId(pick.id);
+  }, [flavors]);
+
+  const injectPrompt = useCallback(() => {
+    const seed = randomFrom(promptSeeds);
+    if (!seed) return;
+    setCaption((prev) => (prev.trim().length > 0 ? `${prev}\n${seed}` : seed));
+    setActiveStep(3);
+  }, [promptSeeds]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTypingTarget =
+        target?.tagName === "TEXTAREA" ||
+        target?.tagName === "INPUT" ||
+        target?.isContentEditable;
+      if (isTypingTarget) return;
+
+      if (event.key.toLowerCase() === "r") pickRandomImage();
+      if (event.key.toLowerCase() === "f") pickRandomFlavor();
+      if (event.key.toLowerCase() === "p") injectPrompt();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [injectPrompt, pickRandomFlavor, pickRandomImage]);
 
   const handleSubmit = async () => {
     if (!canSubmit || busy || !selectedImageId || !userId) return;
@@ -79,7 +140,39 @@ export default function CaptionForge({
   return (
     <section className={styles.layout}>
       <div className={styles.panel}>
-        <h2>Pick an image signal</h2>
+        <div className={styles.stageHeader}>
+          <h2>Create mode</h2>
+          <div className={styles.hotkeys}>
+            <span>R random image</span>
+            <span>F random style</span>
+            <span>P prompt</span>
+          </div>
+        </div>
+        <div className={styles.stepper}>
+          <button
+            className={`${styles.stepChip} ${activeStep === 1 ? styles.selected : ""} ${selectedImageId ? styles.stepDone : ""}`}
+            type="button"
+            onClick={() => setActiveStep(1)}
+          >
+            1 image
+          </button>
+          <button
+            className={`${styles.stepChip} ${activeStep === 2 ? styles.selected : ""} ${selectedFlavorId ? styles.stepDone : ""}`}
+            type="button"
+            onClick={() => setActiveStep(2)}
+          >
+            2 style
+          </button>
+          <button
+            className={`${styles.stepChip} ${activeStep === 3 ? styles.selected : ""} ${captionLength > 0 ? styles.stepDone : ""}`}
+            type="button"
+            onClick={() => setActiveStep(3)}
+          >
+            3 write
+          </button>
+        </div>
+
+        {activeStep === 1 && <h2>Pick an image signal</h2>}
         {images.length === 0 ? (
           <div className={styles.empty}>
             No public or common-use images yet. Add rows to{" "}
@@ -94,7 +187,10 @@ export default function CaptionForge({
                 className={`${styles.imageCard} ${
                   selectedImageId === image.id ? styles.selected : ""
                 }`}
-                onClick={() => setSelectedImageId(image.id)}
+                onClick={() => {
+                  setSelectedImageId(image.id);
+                  setActiveStep(2);
+                }}
                 type="button"
               >
                 <div
@@ -104,14 +200,24 @@ export default function CaptionForge({
                   }}
                 />
                 <div className={styles.imageMeta}>
-                  {image.image_description ?? "No description yet."}
+                  {(image.image_description ?? "No description yet.").slice(0, 64)}
+                  {(image.image_description ?? "").length > 64 ? "..." : ""}
                 </div>
               </button>
             ))}
           </div>
         )}
+        <div className={styles.quickActions}>
+          <button
+            className={styles.secondaryButton}
+            type="button"
+            onClick={pickRandomImage}
+          >
+            Random image
+          </button>
+        </div>
 
-        <h2>Choose a humor flavor</h2>
+        {activeStep === 2 && <h2>Choose a humor flavor</h2>}
         {flavors.length === 0 ? (
           <div className={styles.empty}>
             No humor flavors yet. Add rows to <code>humor_flavors</code>.
@@ -125,15 +231,34 @@ export default function CaptionForge({
                   selectedFlavorId === flavor.id ? styles.selected : ""
                 }`}
                 type="button"
-                onClick={() => setSelectedFlavorId(flavor.id)}
+                onClick={() => {
+                  setSelectedFlavorId(flavor.id);
+                  setActiveStep(3);
+                }}
               >
                 {flavor.slug}
               </button>
             ))}
           </div>
         )}
+        <div className={styles.quickActions}>
+          <button
+            className={styles.secondaryButton}
+            type="button"
+            onClick={pickRandomFlavor}
+          >
+            Random style
+          </button>
+          <button
+            className={styles.secondaryButton}
+            type="button"
+            onClick={injectPrompt}
+          >
+            Prompt me
+          </button>
+        </div>
 
-        <h2>Write the caption</h2>
+        {activeStep === 3 && <h2>Write the caption</h2>}
         <textarea
           className={styles.textArea}
           placeholder="Drop your best surreal line..."
@@ -142,6 +267,9 @@ export default function CaptionForge({
         />
 
         <div className={styles.actionRow}>
+          <span className={styles.vibeBadge}>
+            {captionLength} chars · {vibe}
+          </span>
           <button
             className={styles.primaryButton}
             type="button"
@@ -169,7 +297,13 @@ export default function CaptionForge({
 
       <aside className={styles.preview}>
         <div className={styles.previewCard}>
-          <h3>Preview</h3>
+          <h3>Live card</h3>
+          {selectedImage?.url && (
+            <div
+              className={styles.previewImage}
+              style={{ backgroundImage: `url(${selectedImage.url})` }}
+            />
+          )}
           <p>{caption.trim() || "Your caption preview lands here."}</p>
           <div className={styles.previewMeta}>
             {selectedFlavor?.slug ?? "No flavor"} ·{" "}
@@ -177,11 +311,8 @@ export default function CaptionForge({
           </div>
         </div>
         <div className={styles.panel}>
-          <h2>Duels pull from public captions</h2>
-          <p className={styles.subhead}>
-            Submissions land private first. If approved, they can show up in the
-            lightning duels and community feeds.
-          </p>
+          <h2>Flow</h2>
+          <p className={styles.subhead}>Submit &rarr; review &rarr; public duels.</p>
         </div>
       </aside>
     </section>

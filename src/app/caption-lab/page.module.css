@@ -1,325 +1,418 @@
 .page {
   min-height: 100vh;
-  background:
-    radial-gradient(900px 700px at 10% 0%, rgba(17, 76, 95, 0.28), transparent 60%),
-    radial-gradient(700px 600px at 90% 10%, rgba(245, 166, 35, 0.25), transparent 55%),
-    linear-gradient(180deg, #f5f0e6 0%, #efe3cd 100%);
-  color: #1b1a17;
+  background: var(--bg);
 }
 
 .main {
-  max-width: 1200px;
+  max-width: var(--page-max);
   margin: 0 auto;
-  padding: 54px 22px 90px;
+  padding: 40px var(--page-pad) 96px;
   display: grid;
-  gap: 32px;
+  gap: 28px;
 }
 
-.topNav {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 12px;
-}
+/* ── Header ── */
 
-.backLink {
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  font-size: 0.7rem;
-  border-bottom: 2px solid #1b1a17;
-  padding-bottom: 2px;
-  color: inherit;
-}
-
-.hero {
-  border: 3px solid #1b1a17;
-  background: #fff8ea;
-  padding: 28px 30px;
-  box-shadow: 8px 8px 0 #1b1a17;
-  display: grid;
-  gap: 14px;
-}
-
-.kicker {
-  text-transform: uppercase;
-  letter-spacing: 0.3em;
-  font-size: 0.7rem;
-  font-weight: 700;
+.header {
+  max-width: 560px;
 }
 
 .title {
   margin: 0;
-  font-size: clamp(2.4rem, 4vw, 3.6rem);
-  font-family: var(--font-display), "Shrikhand", serif;
+  font-family: var(--font-display), serif;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  color: var(--ink);
 }
 
-.subhead {
-  margin: 0;
-  font-size: clamp(1rem, 1.2vw, 1.15rem);
+.subtitle {
+  margin: 10px 0 0;
+  font-size: 0.95rem;
+  color: var(--ink-secondary);
   line-height: 1.6;
 }
 
-.heroActions {
+.modeRow {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.shuffleButton {
-  border: 2px solid #1b1a17;
-  background: #1b1a17;
-  color: #fff8ea;
-  padding: 8px 14px;
+.headerModeRow {
+  margin-top: 20px;
+}
+
+.modeBtn {
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--ink-secondary);
+  transition: all 150ms;
+  background: transparent;
+  cursor: pointer;
+}
+
+.modeBtn:hover { border-color: var(--ink); color: var(--ink); }
+
+.modeBtnActive {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
+.writeBtn {
+  margin-left: 8px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.writeBtn:hover { text-decoration: underline; }
+
+/* ── Section label ── */
+
+.sectionLabel {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.labelLine {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.labelText {
+  font-size: 0.72rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
-  font-size: 0.7rem;
-  transition: transform 160ms ease, box-shadow 160ms ease;
+  letter-spacing: 0.12em;
+  color: var(--ink-tertiary);
+  white-space: nowrap;
 }
 
-.shuffleButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 4px 4px 0 rgba(27, 26, 23, 0.85);
-}
+/* ── Examples (How it's done) ── */
 
-.topButton {
-  border: 2px solid #1b1a17;
-  background: #f5a623;
-  color: #1b1a17;
-  padding: 8px 14px;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  font-size: 0.7rem;
-  transition: transform 160ms ease, box-shadow 160ms ease;
-}
-
-.topButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 4px 4px 0 rgba(27, 26, 23, 0.85);
-}
-
-.heroHint {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-}
-
-.grid {
+.examplesSection {
   display: grid;
-  gap: 18px;
-  grid-template-columns: repeat(12, 1fr);
-  grid-auto-rows: 100px;
-  grid-auto-flow: dense;
+  gap: 0;
 }
 
-.panel {
-  border: 3px solid #1b1a17;
-  background: #fffdf7;
-  box-shadow: 6px 6px 0 rgba(27, 26, 23, 0.85);
-  padding: 12px 14px;
+.exampleGrid {
   display: grid;
-  gap: 12px;
-  animation: popIn 700ms ease forwards;
-  opacity: 0;
-  transform: translateY(14px);
-  transition: transform 180ms ease, box-shadow 180ms ease;
-  overflow: hidden;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
 }
 
-.panel:hover {
-  transform: translateY(-6px) rotate(-0.3deg);
-  box-shadow: 10px 10px 0 rgba(27, 26, 23, 0.9);
+.exampleCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: grid;
+  gap: 8px;
 }
 
-.panelWide {
-  grid-column: span 7;
-  grid-row: span 3;
+.exampleDetails summary {
+  cursor: pointer;
+  font-size: 0.74rem;
+  color: var(--ink-tertiary);
 }
 
-.panelTall {
-  grid-column: span 5;
-  grid-row: span 4;
+.exampleCaption {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.45;
 }
 
-.panelSquare {
-  grid-column: span 4;
-  grid-row: span 3;
+.exampleExplanation {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+  color: var(--ink-secondary);
+  line-height: 1.55;
+  border-left: 2px solid var(--accent);
+  padding-left: 12px;
 }
 
-.panelTop {
+.exampleContext {
+  font-size: 0.72rem;
+  color: var(--ink-tertiary);
+  font-style: italic;
+}
+
+/* ── Gallery grid ── */
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.deckSection {
+  display: grid;
+  gap: 16px;
+}
+
+.deckTopRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
+}
+
+.deckCount {
+  font-size: 0.72rem;
+  color: var(--ink-tertiary);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  letter-spacing: 0.18em;
-  font-size: 0.6rem;
-  font-weight: 700;
 }
 
-.panelCount {
-  border: 2px solid #1b1a17;
-  padding: 3px 6px;
-  background: #f5a623;
-}
-
-.panelLikes {
-  border: 2px dashed #1b1a17;
-  padding: 3px 6px;
-  background: #114c5f;
-  color: #fff8ea;
-}
-
-.panelBody {
-  display: grid;
-  gap: 12px;
-  grid-template-rows: auto minmax(130px, 1fr);
-}
-
-.captionBubble {
-  background: #fff8ea;
-  border: 2px solid #1b1a17;
-  border-radius: 18px;
-  padding: 10px 12px;
-  position: relative;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  margin-bottom: 6px;
-}
-
-.captionBubble::after {
-  content: "";
-  position: absolute;
-  bottom: -10px;
-  left: 20px;
-  width: 16px;
-  height: 16px;
-  background: #fff8ea;
-  border: 2px solid #1b1a17;
-  border-top: none;
-  border-left: none;
-  transform: rotate(45deg);
-}
-
-.captionBubble p {
-  margin: 0;
-}
-
-.imageFrame {
-  border: 3px solid #1b1a17;
-  background: #efe3cd;
-  min-height: 0;
-  aspect-ratio: 1 / 1;
-  display: grid;
-  place-items: center;
+.deckCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  position: relative;
-  max-height: 150px;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
 }
 
-.imageFrame img {
+.deckImage {
+  width: 100%;
+  min-height: 280px;
+  background: var(--bg-warm);
+}
+
+.deckImage img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  max-width: 100%;
-  max-height: 100%;
-  background: #efe3cd;
+  object-fit: cover;
+  display: block;
 }
 
-.imagePlaceholder {
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  opacity: 0.7;
+.deckBody {
+  padding: 20px;
+  display: grid;
+  gap: 14px;
+  align-content: start;
 }
+
+.deckCaption {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.deckMeta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.deckActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chaosSection {
+  display: grid;
+  gap: 14px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent-light) 38%, var(--surface)) 0%,
+    var(--surface) 100%
+  );
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+}
+
+.chaosHeader {
+  display: grid;
+  gap: 4px;
+}
+
+.chaosTitle {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--ink);
+}
+
+.chaosTop {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.chaosHint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ink-secondary);
+}
+
+.chaosActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chaosGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-flow: dense;
+  gap: 16px;
+}
+
+.chaosCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(13, 15, 23, 0.08);
+  transition:
+    transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 240ms ease;
+  will-change: transform;
+  transform-origin: center top;
+}
+
+.chaosCard:hover {
+  transform: translateY(-6px) rotate(0deg) !important;
+  box-shadow: 0 14px 28px rgba(13, 15, 23, 0.18);
+}
+
+.chaosImage {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--bg-warm);
+}
+
+.chaosImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.chaosBody {
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.chaosGridShuffling .chaosCard {
+  animation: chaosShuffle 620ms cubic-bezier(0.2, 0.85, 0.22, 1);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: box-shadow 200ms, transform 200ms;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.cardImage {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--bg-warm);
+}
+
+.cardImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cardBody {
+  padding: 16px 18px 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.cardCaption {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.cardMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cardFlavor {
+  font-size: 0.68rem;
+  padding: 2px 8px;
+  background: var(--bg-warm);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--ink-secondary);
+  font-weight: 500;
+}
+
+.cardLikes {
+  font-size: 0.75rem;
+  color: var(--ink-tertiary);
+}
+
+/* ── Empty ── */
 
 .empty {
-  border: 2px dashed #1b1a17;
-  padding: 24px;
-  background: #fff8ea;
+  padding: 28px;
+  text-align: center;
+  color: var(--ink-tertiary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
 }
 
-.empty code {
-  padding: 2px 6px;
-  margin: 0 4px;
-  border: 1px solid #1b1a17;
-  background: #efe3cd;
-}
-
-@keyframes popIn {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes shufflePulse {
+@keyframes chaosShuffle {
   0% {
-    transform: translateY(10px) rotate(-0.6deg);
-    opacity: 0;
+    transform: translateY(-3px) rotate(-2deg) scale(0.98);
+    opacity: 0.88;
   }
-  60% {
-    transform: translateY(-4px) rotate(0.3deg);
+  45% {
+    transform: translateY(7px) rotate(2deg) scale(1.01);
     opacity: 1;
   }
   100% {
-    transform: translateY(0);
     opacity: 1;
   }
 }
 
-.gridShuffle .panel {
-  animation: shufflePulse 600ms ease forwards;
+/* ── Responsive ── */
+
+@media (max-width: 860px) {
+  .exampleGrid { grid-template-columns: 1fr; }
+  .deckCard { grid-template-columns: 1fr; }
+  .deckImage { min-height: 220px; }
+  .chaosGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chaosCard { grid-column: span 1 !important; }
 }
 
-@media (max-width: 960px) {
-  .grid {
-    grid-template-columns: repeat(8, 1fr);
-    grid-auto-rows: 110px;
-  }
-
-  .panelWide {
-    grid-column: span 8;
-    grid-row: span 3;
-  }
-
-  .panelTall {
-    grid-column: span 5;
-    grid-row: span 4;
-  }
-
-  .panelSquare {
-    grid-column: span 4;
-    grid-row: span 3;
-  }
-}
-
-@media (max-width: 680px) {
-  .main {
-    padding: 44px 18px 70px;
-  }
-
-  .grid {
-    grid-template-columns: repeat(4, 1fr);
-    grid-auto-rows: 120px;
-  }
-
-  .panelWide,
-  .panelTall,
-  .panelSquare {
-    grid-column: span 4;
-    grid-row: span 3;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .panel {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
-
-  .panel:hover {
-    transform: none;
-    box-shadow: 6px 6px 0 rgba(27, 26, 23, 0.85);
-  }
+@media (max-width: 640px) {
+  .gallery { grid-template-columns: 1fr; }
+  .chaosGrid { grid-template-columns: 1fr; }
+  .chaosCard { grid-column: span 1 !important; }
+  .writeBtn { margin-left: 0; }
 }

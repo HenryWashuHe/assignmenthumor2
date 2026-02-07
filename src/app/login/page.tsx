@@ -24,7 +24,7 @@ function LoginForm() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "https://assignmenthumor2.vercel.app/auth/callback",
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
     if (error) {
@@ -55,8 +55,7 @@ function LoginForm() {
           <h1 className={styles.title}>Sign in to continue</h1>
           <p className={styles.subtitle}>
             This app is restricted to Columbia University and Barnard College
-            students. Sign in with your school Google account to access the
-            stormboard.
+            students. Sign in with your school Google account to get started.
           </p>
 
           <div className={styles.hint}>

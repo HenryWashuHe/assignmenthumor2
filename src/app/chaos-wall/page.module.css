@@ -1,0 +1,66 @@
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.main {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 40px var(--page-pad) 96px;
+  display: grid;
+  gap: 24px;
+}
+
+.header {
+  max-width: 700px;
+  display: grid;
+  gap: 10px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display), serif;
+  font-size: clamp(2rem, 4vw, 2.9rem);
+  color: var(--ink);
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--ink-secondary);
+  line-height: 1.6;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.actionBtn,
+.actionBtnSecondary {
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  padding: 7px 14px;
+}
+
+.actionBtn {
+  background: var(--ink);
+  color: var(--bg);
+  border: 1px solid var(--ink);
+}
+
+.actionBtnSecondary {
+  color: var(--ink-secondary);
+  border: 1px solid var(--border-strong);
+}
+
+.empty {
+  padding: 28px;
+  text-align: center;
+  color: var(--ink-tertiary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
