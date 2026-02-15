@@ -69,6 +69,42 @@ button {
   color: var(--ink);
 }
 
+/* ── Dark theme ── */
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #141210;
+  --bg-warm: #1C1A17;
+  --surface: #1E1C19;
+  --surface-raised: #252320;
+
+  --ink: #EDE9E3;
+  --ink-secondary: #A09A93;
+  --ink-tertiary: #706B65;
+  --ink-faint: #4A4540;
+
+  --accent: #EF5B3F;
+  --accent-hover: #FF7A62;
+  --accent-light: rgba(239, 91, 63, 0.12);
+  --accent-mid: rgba(239, 91, 63, 0.2);
+
+  --border: #2E2B28;
+  --border-strong: #3D3A36;
+  --border-accent: rgba(239, 91, 63, 0.35);
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.25), 0 1px 4px rgba(0,0,0,0.2);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* ── Dropdown animation ── */
+
+@keyframes menuFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @media (max-width: 640px) {
   :root {
     --page-pad: 16px;

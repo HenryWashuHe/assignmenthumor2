@@ -1,0 +1,419 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import type { NormalizedCaption } from "./page";
+import styles from "./page.module.css";
+
+/* ── types ── */
+
+interface LastVote {
+  captionId: string;
+  voteValue: number;
+  voteRowId: number;
+  index: number;
+}
+
+type ExitDir = "left" | "right" | null;
+
+interface Props {
+  captions: NormalizedCaption[];
+  profileId: string;
+  previouslyRated: number;
+}
+
+const AUTO_ADVANCE_MS = 900;
+const UNDO_TOAST_MS = 6000;
+
+/* ── component ── */
+
+export default function RatingDeck({
+  captions,
+  profileId,
+  previouslyRated,
+}: Props) {
+  const [queue] = useState<NormalizedCaption[]>(captions);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [sessionRated, setSessionRated] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [votedIds, setVotedIds] = useState<Set<string>>(new Set());
+
+  /* animation state */
+  const [exitDir, setExitDir] = useState<ExitDir>(null);
+  const [stampLabel, setStampLabel] = useState<string | null>(null);
+  const [entering, setEntering] = useState(false);
+
+  /* undo toast state */
+  const [lastVote, setLastVote] = useState<LastVote | null>(null);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastProgress, setToastProgress] = useState(100);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const supabase = useMemo(() => createClient(), []);
+
+  const current = queue[currentIndex] ?? null;
+  const nextCaption = queue[currentIndex + 1] ?? null;
+  const total = queue.length;
+  const totalRated = previouslyRated + sessionRated;
+  const progressPct =
+    total > 0 ? (currentIndex / total) * 100 : 0;
+
+  /* preload next image */
+  useEffect(() => {
+    if (nextCaption?.imageUrl) {
+      const img = new window.Image();
+      img.src = nextCaption.imageUrl;
+    }
+  }, [nextCaption]);
+
+  /* clear toast timers on unmount */
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      if (toastInterval.current) clearInterval(toastInterval.current);
+    };
+  }, []);
+
+  /* start the undo toast countdown */
+  const showUndoToast = useCallback(() => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    if (toastInterval.current) clearInterval(toastInterval.current);
+
+    setToastVisible(true);
+    setToastProgress(100);
+
+    const start = Date.now();
+    toastInterval.current = setInterval(() => {
+      const elapsed = Date.now() - start;
+      const remaining = Math.max(0, 100 - (elapsed / UNDO_TOAST_MS) * 100);
+      setToastProgress(remaining);
+      if (remaining <= 0 && toastInterval.current) {
+        clearInterval(toastInterval.current);
+      }
+    }, 50);
+
+    toastTimer.current = setTimeout(() => {
+      setToastVisible(false);
+      setLastVote(null);
+      if (toastInterval.current) clearInterval(toastInterval.current);
+    }, UNDO_TOAST_MS);
+  }, []);
+
+  const dismissToast = useCallback(() => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    if (toastInterval.current) clearInterval(toastInterval.current);
+    setToastVisible(false);
+  }, []);
+
+  /* advance to next card with entrance animation */
+  const advanceCard = useCallback(() => {
+    setCurrentIndex((prev) => prev + 1);
+    setStampLabel(null);
+    setExitDir(null);
+    setError(null);
+    setEntering(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setEntering(false));
+    });
+  }, []);
+
+  /* submit vote */
+  const submitVote = useCallback(
+    async (value: number) => {
+      if (!current || votedIds.has(current.id) || isSubmitting || exitDir)
+        return;
+
+      setIsSubmitting(true);
+      setError(null);
+
+      const { data, error: insertError } = await supabase
+        .from("caption_votes")
+        .insert({
+          vote_value: value,
+          profile_id: profileId,
+          caption_id: current.id,
+          created_datetime_utc: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
+
+      if (insertError) {
+        setError(insertError.message);
+        setIsSubmitting(false);
+        return;
+      }
+
+      const voteInfo: LastVote = {
+        captionId: current.id,
+        voteValue: value,
+        voteRowId: data.id,
+        index: currentIndex,
+      };
+
+      setVotedIds((prev) => new Set([...prev, current.id]));
+      setSessionRated((prev) => prev + 1);
+      setStampLabel(value === 1 ? "Funny!" : "Nope");
+      setExitDir(value === 1 ? "right" : "left");
+      setLastVote(voteInfo);
+      setIsSubmitting(false);
+
+      showUndoToast();
+
+      setTimeout(() => {
+        advanceCard();
+      }, AUTO_ADVANCE_MS);
+    },
+    [
+      current,
+      currentIndex,
+      votedIds,
+      isSubmitting,
+      exitDir,
+      supabase,
+      profileId,
+      showUndoToast,
+      advanceCard,
+    ]
+  );
+
+  /* undo last vote */
+  const undoVote = useCallback(async () => {
+    if (!lastVote || isSubmitting) return;
+
+    setIsSubmitting(true);
+    dismissToast();
+
+    const { error: deleteError } = await supabase
+      .from("caption_votes")
+      .delete()
+      .eq("id", lastVote.voteRowId);
+
+    if (deleteError) {
+      setError(deleteError.message);
+      setIsSubmitting(false);
+      return;
+    }
+
+    setVotedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(lastVote.captionId);
+      return next;
+    });
+    setSessionRated((prev) => Math.max(0, prev - 1));
+
+    setCurrentIndex(lastVote.index);
+    setExitDir(null);
+    setStampLabel(null);
+    setLastVote(null);
+    setIsSubmitting(false);
+    setEntering(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setEntering(false));
+    });
+  }, [lastVote, isSubmitting, supabase, dismissToast]);
+
+  /* skip */
+  const skip = useCallback(() => {
+    if (exitDir || currentIndex >= total - 1) return;
+    setExitDir("left");
+    setTimeout(() => {
+      advanceCard();
+    }, 350);
+  }, [exitDir, currentIndex, total, advanceCard]);
+
+  /* keyboard shortcuts */
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTyping =
+        target?.tagName === "TEXTAREA" ||
+        target?.tagName === "INPUT" ||
+        target?.isContentEditable;
+      if (isTyping) return;
+
+      const key = event.key.toLowerCase();
+
+      if (key === "f" && !exitDir) {
+        submitVote(1);
+      } else if (key === "d" && !exitDir) {
+        submitVote(-1);
+      } else if (key === "u" && lastVote) {
+        undoVote();
+      } else if ((key === "n" || event.key === "ArrowRight") && !exitDir) {
+        skip();
+      }
+    };
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [exitDir, lastVote, submitVote, undoVote, skip]);
+
+  /* ── empty state ── */
+  if (total === 0 || !current) {
+    return (
+      <section className={styles.emptyState}>
+        <h2 className={styles.emptyTitle}>All caught up!</h2>
+        <p className={styles.emptyDesc}>
+          You&apos;ve rated every available caption. Check back later for new
+          ones.
+        </p>
+        {totalRated > 0 && (
+          <p className={styles.emptyStats}>
+            {totalRated} caption{totalRated === 1 ? "" : "s"} rated total.
+          </p>
+        )}
+        <Link href="/caption-lab" className={styles.backLink}>
+          Back to the gallery &rarr;
+        </Link>
+      </section>
+    );
+  }
+
+  const cardClasses = [
+    styles.card,
+    exitDir === "right" ? styles.cardExitRight : "",
+    exitDir === "left" ? styles.cardExitLeft : "",
+    entering ? styles.cardEnter : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <section className={styles.deckSection}>
+      {/* progress + counter row */}
+      <div className={styles.topRow}>
+        <div
+          className={styles.progressBar}
+          role="progressbar"
+          aria-valuenow={Math.round(progressPct)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Rating progress"
+        >
+          <div
+            className={styles.progressFill}
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+        <div className={styles.topMeta}>
+          <span className={styles.counter}>
+            {currentIndex + 1}/{total}
+          </span>
+          <span className={styles.ratedBadge}>{totalRated} rated</span>
+        </div>
+      </div>
+
+      {/* card stack */}
+      <div className={styles.cardStack}>
+        {nextCaption && (
+          <div className={styles.peekCard} aria-hidden="true">
+            {nextCaption.imageUrl && (
+              <div className={styles.peekImage}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={nextCaption.imageUrl} alt="" />
+              </div>
+            )}
+          </div>
+        )}
+
+        <article className={cardClasses}>
+          {current.imageUrl && (
+            <div className={styles.cardImage}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={current.imageUrl}
+                alt={current.imageAlt ?? "Caption image"}
+              />
+            </div>
+          )}
+          <div className={styles.cardBody}>
+            <p className={styles.cardCaption}>
+              &ldquo;{current.content ?? "No caption text."}&rdquo;
+            </p>
+            {current.flavorSlug && (
+              <span className={styles.flavorTag}>{current.flavorSlug}</span>
+            )}
+          </div>
+
+          {stampLabel && (
+            <div
+              className={styles.stamp}
+              data-vote={stampLabel === "Funny!" ? "up" : "down"}
+            >
+              {stampLabel}
+            </div>
+          )}
+        </article>
+      </div>
+
+      {/* error */}
+      {error && <p className={styles.errorMsg}>{error}</p>}
+
+      {/* vote buttons */}
+      <div className={styles.voteRow}>
+        <button
+          type="button"
+          className={styles.notFunnyBtn}
+          onClick={() => submitVote(-1)}
+          disabled={isSubmitting || Boolean(exitDir)}
+          aria-label="Vote not funny"
+        >
+          <span className={styles.voteBtnIcon}>&#x2717;</span>
+          Not funny
+        </button>
+        <button
+          type="button"
+          className={styles.skipBtn}
+          onClick={skip}
+          disabled={isSubmitting || Boolean(exitDir)}
+        >
+          Skip
+        </button>
+        <button
+          type="button"
+          className={styles.funnyBtn}
+          onClick={() => submitVote(1)}
+          disabled={isSubmitting || Boolean(exitDir)}
+          aria-label="Vote funny"
+        >
+          <span className={styles.voteBtnIcon}>&#x2713;</span>
+          Funny
+        </button>
+      </div>
+
+      {/* hotkey hints */}
+      <div className={styles.hints}>
+        <kbd>F</kbd> funny &middot; <kbd>D</kbd> not funny &middot;{" "}
+        <kbd>N</kbd> skip &middot; <kbd>U</kbd> undo
+      </div>
+
+      {/* undo toast */}
+      {toastVisible && lastVote && (
+        <div className={styles.toast}>
+          <div className={styles.toastContent}>
+            <span className={styles.toastLabel}>
+              Voted {lastVote.voteValue === 1 ? "Funny" : "Not Funny"}
+            </span>
+            <button
+              type="button"
+              className={styles.toastUndo}
+              onClick={undoVote}
+              disabled={isSubmitting}
+            >
+              Undo
+            </button>
+          </div>
+          <div className={styles.toastBar}>
+            <div
+              className={styles.toastBarFill}
+              style={{ width: `${toastProgress}%` }}
+            />
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}

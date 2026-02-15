@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Shrikhand, Space_Grotesk } from "next/font/google";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import UserMenu from "./UserMenu";
 import "./globals.css";
 
 const displayFont = Shrikhand({
@@ -24,6 +25,7 @@ const navItems = [
   { href: "/news", label: "Feed" },
   { href: "/caption-lab", label: "Gallery" },
   { href: "/chaos-wall", label: "Chaos Wall" },
+  { href: "/rate", label: "Rate" },
   { href: "/create", label: "Studio" },
   { href: "/genome", label: "The Index" },
 ];
@@ -39,7 +41,14 @@ export default async function RootLayout({
   } = await supabase.auth.getUser();
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("theme");if(t==="dark"||(!t&&matchMedia("(prefers-color-scheme:dark)").matches)){document.documentElement.setAttribute("data-theme","dark")}}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body className={`${displayFont.variable} ${bodyFont.variable}`}>
         <header
           style={{
@@ -91,25 +100,7 @@ export default async function RootLayout({
             ))}
 
             {user ? (
-              <form action="/auth/signout" method="post">
-                <button
-                  type="submit"
-                  style={{
-                    padding: "5px 14px",
-                    border: "1px solid var(--border-strong)",
-                    background: "var(--bg)",
-                    color: "var(--ink)",
-                    fontSize: "0.75rem",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                    borderRadius: "var(--radius-sm)",
-                    transition: "border-color 150ms",
-                  }}
-                >
-                  {user.email?.split("@")[0]}
-                </button>
-              </form>
+              <UserMenu displayName={user.email?.split("@")[0] ?? "user"} />
             ) : (
               <Link
                 href="/login"

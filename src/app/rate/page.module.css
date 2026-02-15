@@ -1,0 +1,532 @@
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+  position: relative;
+}
+
+/* ── Back nav (top-left, outside content flow) ── */
+
+.backNav {
+  position: absolute;
+  top: 16px;
+  left: var(--page-pad);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  padding: 6px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  transition: border-color 150ms, color 150ms;
+  z-index: 10;
+}
+
+.backNav:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+/* ── Main ── */
+
+.main {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0 var(--page-pad);
+  min-height: calc(100vh - 56px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Deck section ── */
+
+.deckSection {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+
+/* ── Top row: progress + meta ── */
+
+.topRow {
+  display: grid;
+  gap: 6px;
+}
+
+.progressBar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 0;
+}
+
+.topMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.counter {
+  font-size: 0.72rem;
+  color: var(--ink-tertiary);
+  letter-spacing: 0.04em;
+  font-weight: 500;
+}
+
+.ratedBadge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  background: var(--accent-light);
+  color: var(--accent);
+  border-radius: 999px;
+}
+
+/* ── Card stack ── */
+
+.cardStack {
+  position: relative;
+  perspective: 800px;
+}
+
+.peekCard {
+  position: absolute;
+  inset: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transform: scale(0.96) translateY(8px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.peekImage {
+  width: 100%;
+  max-height: 40vh;
+  overflow: hidden;
+  background: var(--bg-warm);
+}
+
+.peekImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: blur(2px);
+}
+
+/* ── Current card ── */
+
+.card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition:
+    transform 500ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateX(0) rotate(0deg);
+  opacity: 1;
+  z-index: 2;
+}
+
+.cardExitRight {
+  transform: translateX(110%) rotate(8deg);
+  opacity: 0;
+}
+
+.cardExitLeft {
+  transform: translateX(-110%) rotate(-8deg);
+  opacity: 0;
+}
+
+.cardEnter {
+  transition: none;
+  transform: translateX(0) scale(0.95);
+  opacity: 0;
+}
+
+.cardImage {
+  width: 100%;
+  max-height: 40vh;
+  overflow: hidden;
+  background: var(--bg-warm);
+}
+
+.cardImage img {
+  width: 100%;
+  height: 100%;
+  max-height: 40vh;
+  object-fit: cover;
+  display: block;
+}
+
+.cardBody {
+  padding: 16px 18px 18px;
+  display: grid;
+  gap: 8px;
+}
+
+.cardCaption {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.flavorTag {
+  justify-self: start;
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  background: var(--bg-warm);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--ink-secondary);
+  font-weight: 500;
+}
+
+/* ── Vote stamp overlay ── */
+
+.stamp {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-12deg) scale(0);
+  font-family: var(--font-display), serif;
+  font-size: 2.8rem;
+  letter-spacing: 0.04em;
+  padding: 8px 28px;
+  border-radius: var(--radius-md);
+  border: 4px solid;
+  pointer-events: none;
+  animation: stampIn 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  z-index: 5;
+}
+
+.stamp[data-vote="up"] {
+  --vote-color: 46, 125, 50;
+  color: rgb(var(--vote-color));
+  border-color: rgb(var(--vote-color));
+  background: rgba(var(--vote-color), 0.1);
+}
+
+.stamp[data-vote="down"] {
+  --vote-color: 183, 28, 28;
+  color: rgb(var(--vote-color));
+  border-color: rgb(var(--vote-color));
+  background: rgba(var(--vote-color), 0.1);
+  transform: translate(-50%, -50%) rotate(12deg) scale(0);
+}
+
+@keyframes stampIn {
+  0% { transform: translate(-50%, -50%) rotate(-12deg) scale(0); }
+  60% { transform: translate(-50%, -50%) rotate(-12deg) scale(1.1); }
+  100% { transform: translate(-50%, -50%) rotate(-12deg) scale(1); }
+}
+
+/* ── Error message ── */
+
+.errorMsg {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--accent);
+  background: var(--accent-light);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-accent);
+  text-align: center;
+}
+
+/* ── Vote buttons ── */
+
+.voteRow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.funnyBtn,
+.notFunnyBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 28px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    transform 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 150ms,
+    opacity 150ms;
+  font-family: inherit;
+  border: none;
+  min-width: 140px;
+}
+
+.funnyBtn:active,
+.notFunnyBtn:active {
+  transform: scale(0.95);
+}
+
+.funnyBtn {
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.funnyBtn:hover:not(:disabled) {
+  box-shadow: var(--shadow-md);
+  transform: scale(1.03);
+}
+
+.notFunnyBtn {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1.5px solid var(--border-strong);
+}
+
+.notFunnyBtn:hover:not(:disabled) {
+  border-color: var(--ink);
+  transform: scale(1.03);
+}
+
+.voteBtnIcon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.skipBtn {
+  padding: 10px 16px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 150ms, border-color 150ms;
+  font-family: inherit;
+  background: transparent;
+  color: var(--ink-tertiary);
+  border: 1px solid var(--border);
+}
+
+.skipBtn:hover:not(:disabled) {
+  color: var(--ink-secondary);
+  border-color: var(--border-strong);
+}
+
+.funnyBtn:disabled,
+.notFunnyBtn:disabled,
+.skipBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Hotkey hints ── */
+
+.hints {
+  font-size: 0.72rem;
+  color: var(--ink-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.hints kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  font-size: 0.68rem;
+  font-family: inherit;
+  font-weight: 600;
+  background: var(--bg-warm);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--ink-secondary);
+  line-height: 1.4;
+}
+
+/* ── Undo toast ── */
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  min-width: 280px;
+  animation: toastSlideUp 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.toastContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  gap: 16px;
+}
+
+.toastLabel {
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.toastUndo {
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--bg);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 150ms;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.toastUndo:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.toastUndo:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toastBar {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.toastBarFill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 80ms linear;
+}
+
+@keyframes toastSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ── Empty state ── */
+
+.emptyState {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 48px 32px;
+  text-align: center;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.emptyTitle {
+  margin: 0;
+  font-family: var(--font-display), serif;
+  font-size: 1.6rem;
+  color: var(--ink);
+}
+
+.emptyDesc {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--ink-secondary);
+  line-height: 1.6;
+  max-width: 420px;
+}
+
+.emptyStats {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ink-tertiary);
+}
+
+.backLink {
+  margin-top: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.backLink:hover {
+  text-decoration: underline;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 640px) {
+  .backNav {
+    top: 10px;
+    padding: 5px 10px;
+    font-size: 0.75rem;
+  }
+
+  .main {
+    padding: 12px var(--page-pad) 90px;
+  }
+
+  .cardBody {
+    padding: 14px 16px 16px;
+  }
+
+  .voteRow {
+    gap: 8px;
+  }
+
+  .funnyBtn,
+  .notFunnyBtn {
+    padding: 12px 20px;
+    min-width: 110px;
+    font-size: 0.82rem;
+  }
+
+  .hints {
+    display: none;
+  }
+
+  .toast {
+    left: 16px;
+    right: 16px;
+    transform: none;
+    min-width: 0;
+  }
+
+  @keyframes toastSlideUp {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

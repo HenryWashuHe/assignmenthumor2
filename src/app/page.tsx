@@ -128,6 +128,9 @@ export default async function Home() {
             <Link className={styles.secondaryCta} href="/chaos-wall">
               Enter Chaos Wall
             </Link>
+            <Link className={styles.secondaryCta} href="/rate">
+              Rate captions
+            </Link>
           </div>
         </section>
 
@@ -271,6 +274,13 @@ export default async function Home() {
             <h2 className={styles.sectionTitle}>Chaos Wall</h2>
             <p className={styles.sectionDesc}>
               Randomized caption stacks with live shuffle.
+            </p>
+          </Link>
+          <Link className={styles.sectionCard} href="/rate">
+            <span className={styles.sectionNumber}>05</span>
+            <h2 className={styles.sectionTitle}>Rate</h2>
+            <p className={styles.sectionDesc}>
+              Funny or not? You decide.
             </p>
           </Link>
         </section>
