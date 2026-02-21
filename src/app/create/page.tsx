@@ -120,7 +120,8 @@ export default async function StudioPage() {
         <header className={styles.header}>
           <h1 className={styles.title}>The Studio</h1>
           <p className={styles.subtitle}>
-            Pick fast. Write faster.
+            Upload your own image or pick from the gallery, then craft the
+            perfect caption &mdash; AI-powered suggestions included.
           </p>
         </header>
 
