@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import styles from "./page.module.css";
 import { createClient } from "@/lib/supabase/client";
 
@@ -13,17 +14,19 @@ interface ImageRow {
   is_common_use: boolean | null;
 }
 
-interface HumorFlavorRow {
+interface TermRow {
   id: number;
-  slug: string;
-  description: string | null;
+  term: string;
+  definition: string;
+  example: string;
 }
 
 interface CaptionForgeProps {
   images: ImageRow[];
-  flavors: HumorFlavorRow[];
   userId: string | null;
   userEmail: string | null;
+  terms: TermRow[];
+  currentVibe: string | null;
 }
 
 type ImageSource =
@@ -62,7 +65,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const PHASE_LABELS: Record<UploadPhase, string> = {
   idle: "",
   uploading: "Uploading image...",
-  generating: "Generating captions \u2014 this may take a moment...",
+  generating: "Generating captions — this may take a moment...",
   done: "Done!",
   error: "Something went wrong",
 };
@@ -71,18 +74,16 @@ const PHASE_LABELS: Record<UploadPhase, string> = {
 
 export default function CaptionForge({
   images,
-  flavors,
   userId,
   userEmail,
+  terms,
+  currentVibe,
 }: CaptionForgeProps) {
   const [imageSource, setImageSource] = useState<ImageSource>(null);
   const [uploadPhase, setUploadPhase] = useState<UploadPhase>("idle");
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
   const [generatedCaptions, setGeneratedCaptions] = useState<string[]>([]);
-  const [selectedFlavorId, setSelectedFlavorId] = useState<number | null>(
-    flavors[0]?.id ?? null
-  );
   const [caption, setCaption] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -90,31 +91,35 @@ export default function CaptionForge({
   const [showGallery, setShowGallery] = useState(false);
   const [sampleCaptionsLoading, setSampleCaptionsLoading] = useState(false);
   const [generatingForGallery, setGeneratingForGallery] = useState(false);
+  const [submitSuccessPulse, setSubmitSuccessPulse] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const selectedFlavor = useMemo(
-    () => flavors.find((f) => f.id === selectedFlavorId) ?? null,
-    [flavors, selectedFlavorId]
-  );
+  const submitPulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const imageUrl = useMemo(() => {
     if (!imageSource) return null;
-    return imageSource.kind === "gallery"
-      ? imageSource.url
-      : imageSource.cdnUrl;
+    return imageSource.kind === "gallery" ? imageSource.url : imageSource.cdnUrl;
   }, [imageSource]);
 
   const captionLength = caption.trim().length;
-  const canSubmit =
-    imageSource !== null && captionLength > 0 && Boolean(userId);
-  const isProcessing =
-    uploadPhase === "uploading" || uploadPhase === "generating";
+  const canSubmit = imageSource !== null && captionLength > 0 && Boolean(userId);
+  const isGenerating = uploadPhase === "generating" || generatingForGallery;
+  const isProcessing = uploadPhase === "uploading" || isGenerating;
   const suggestionsLabel =
-    imageSource?.kind === "upload"
-      ? "AI suggestions"
-      : "Sample captions for this image";
+    imageSource?.kind === "upload" ? "AI suggestions" : "Sample captions";
+  const generationBackdrop = useMemo(() => {
+    if (uploadPhase === "generating" && uploadPreview) return uploadPreview;
+    return imageUrl ?? uploadPreview;
+  }, [imageUrl, uploadPhase, uploadPreview]);
+  const generationLabel =
+    uploadPhase === "generating"
+      ? PHASE_LABELS.generating
+      : "Generating fresh captions for this image...";
+  const currentVibeText =
+    currentVibe && currentVibe.length > 320
+      ? `${currentVibe.slice(0, 320)}...`
+      : currentVibe;
 
   /* ── toast helper ── */
 
@@ -127,6 +132,7 @@ export default function CaptionForge({
   useEffect(() => {
     return () => {
       if (toastTimer.current) clearTimeout(toastTimer.current);
+      if (submitPulseTimer.current) clearTimeout(submitPulseTimer.current);
     };
   }, []);
 
@@ -207,8 +213,7 @@ export default function CaptionForge({
       setCaption(captionTexts[0] ?? "");
       setUploadPhase("done");
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Unknown error occurred";
+      const message = err instanceof Error ? err.message : "Unknown error occurred";
       setUploadError(message);
       setUploadPhase("error");
     }
@@ -314,8 +319,7 @@ export default function CaptionForge({
         setCaption(captionTexts[0]);
       }
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Generation failed";
+      const message = err instanceof Error ? err.message : "Generation failed";
       setUploadError(message);
     }
     setGeneratingForGallery(false);
@@ -334,7 +338,6 @@ export default function CaptionForge({
       is_public: false,
       profile_id: userId,
       image_id: imageSource.imageId,
-      humor_flavor_id: selectedFlavorId,
     });
 
     if (error) {
@@ -345,6 +348,11 @@ export default function CaptionForge({
       setImageSource(null);
       setUploadPhase("idle");
       setUploadPreview(null);
+      setSubmitSuccessPulse(true);
+      if (submitPulseTimer.current) clearTimeout(submitPulseTimer.current);
+      submitPulseTimer.current = setTimeout(() => {
+        setSubmitSuccessPulse(false);
+      }, 1700);
       showToast("Caption submitted!");
     }
     setBusy(false);
@@ -356,7 +364,6 @@ export default function CaptionForge({
     <section className={styles.layout}>
       {/* ── Left column: controls ── */}
       <div className={styles.panel}>
-
         {/* ── Image source: upload zone ── */}
         {imageSource === null && !isProcessing && uploadPhase !== "error" && (
           <div className={styles.sectionCard}>
@@ -394,21 +401,15 @@ export default function CaptionForge({
           </div>
         )}
 
-        {/* ── Processing spinner ── */}
-        {isProcessing && (
+        {/* ── Uploading state ── */}
+        {uploadPhase === "uploading" && (
           <div className={styles.processing}>
             {uploadPreview && (
-              <img
-                src={uploadPreview}
-                alt="Preview"
-                className={styles.uploadPreviewImg}
-              />
+              <img src={uploadPreview} alt="Preview" className={styles.uploadPreviewImg} />
             )}
             <div className={styles.shimmerBar} />
             <div className={styles.spinner} />
-            <span className={styles.phaseLabel}>
-              {PHASE_LABELS[uploadPhase]}
-            </span>
+            <span className={styles.phaseLabel}>{PHASE_LABELS.uploading}</span>
           </div>
         )}
 
@@ -416,18 +417,10 @@ export default function CaptionForge({
         {uploadPhase === "error" && (
           <div className={styles.errorState}>
             {uploadPreview && (
-              <img
-                src={uploadPreview}
-                alt="Preview"
-                className={styles.uploadPreviewImg}
-              />
+              <img src={uploadPreview} alt="Preview" className={styles.uploadPreviewImg} />
             )}
             <p className={styles.errorText}>{uploadError}</p>
-            <button
-              className={styles.secondaryButton}
-              type="button"
-              onClick={resetUpload}
-            >
+            <button className={styles.secondaryButton} type="button" onClick={resetUpload}>
               Try again
             </button>
           </div>
@@ -436,9 +429,7 @@ export default function CaptionForge({
         {/* ── Selected image banner ── */}
         {imageSource !== null && !isProcessing && (
           <div className={styles.selectedImageBanner}>
-            {imageUrl && (
-              <img src={imageUrl} alt="Selected" />
-            )}
+            {imageUrl && <img src={imageUrl} alt="Selected" />}
             <div className={styles.bannerBody}>
               <p className={styles.bannerLabel}>Image ready</p>
               <div className={styles.bannerActions}>
@@ -459,11 +450,7 @@ export default function CaptionForge({
                     )}
                   </button>
                 )}
-                <button
-                  className={styles.secondaryButton}
-                  type="button"
-                  onClick={resetUpload}
-                >
+                <button className={styles.secondaryButton} type="button" onClick={resetUpload}>
                   Change image
                 </button>
               </div>
@@ -480,14 +467,10 @@ export default function CaptionForge({
               onClick={() => setShowGallery((prev) => !prev)}
             >
               <span className={styles.galleryToggleIcon}>
-                {showGallery ? "\u25BE" : "\u25B8"}
+                {showGallery ? "▾" : "▸"}
               </span>
-              <span className={styles.galleryToggleText}>
-                Browse image gallery
-              </span>
-              <span className={styles.galleryToggleCount}>
-                {images.length} images
-              </span>
+              <span className={styles.galleryToggleText}>Browse image gallery</span>
+              <span className={styles.galleryToggleCount}>{images.length} images</span>
             </button>
 
             {showGallery && images.length > 0 && (
@@ -501,14 +484,15 @@ export default function CaptionForge({
                     onClick={() => selectGalleryImage(image)}
                     type="button"
                   >
-                    <div
-                      className={styles.imageThumb}
-                      style={{
-                        backgroundImage: image.url
-                          ? `url(${image.url})`
-                          : "none",
-                      }}
-                    />
+                    <div className={styles.imageThumb}>
+                      {image.url && (
+                        <img
+                          src={image.url}
+                          alt={image.image_description ?? "Gallery image"}
+                          className={styles.imageThumbImg}
+                        />
+                      )}
+                    </div>
                     <div className={styles.imageMeta}>
                       {(image.image_description ?? "No description").slice(0, 64)}
                       {(image.image_description ?? "").length > 64 ? "..." : ""}
@@ -520,7 +504,6 @@ export default function CaptionForge({
           </div>
         )}
 
-        {/* ── Caption suggestions (AI or sample) ── */}
         {sampleCaptionsLoading && (
           <div className={styles.processing}>
             <div className={styles.spinner} />
@@ -528,123 +511,56 @@ export default function CaptionForge({
           </div>
         )}
 
-        {generatingForGallery && (
-          <div className={styles.processing}>
-            <div className={styles.shimmerBar} />
-            <div className={styles.spinner} />
-            <span className={styles.phaseLabel}>Generating AI captions...</span>
-          </div>
-        )}
+        <div className={styles.panelWriter}>
+          <div className={styles.writerHeader}>Writer room</div>
+          <div className={styles.writerGrid}>
+            {currentVibeText && (
+              <div className={`${styles.writerCard} ${styles.currentVibeCard}`}>
+                <h3 className={styles.fuelTitle}>Current vibe</h3>
+                <p className={styles.currentVibeText}>{currentVibeText}</p>
+              </div>
+            )}
 
-        {generatedCaptions.length > 0 && !generatingForGallery && (
-          <div className={styles.suggestionsSection}>
-            <h3 className={styles.sectionLabel}>
-              <span className={styles.sectionAccent} />
-              {suggestionsLabel}
-            </h3>
-            <p className={styles.suggestionsHint}>
-              {imageSource?.kind === "upload"
-                ? "Click a suggestion to use it, then edit to make it yours"
-                : "See what others wrote \u2014 click one for inspiration, or write your own"}
-            </p>
-            <div className={styles.suggestionsList}>
-              {generatedCaptions.map((text, idx) => (
-                <button
-                  key={idx}
-                  className={`${styles.suggestionChip} ${
-                    caption === text ? styles.active : ""
-                  }`}
-                  type="button"
-                  onClick={() => setCaption(text)}
-                  style={{ animationDelay: `${idx * 50}ms` }}
-                >
-                  &ldquo;{text}&rdquo;
-                </button>
-              ))}
+            {terms.length > 0 && (
+              <div className={styles.writerCard}>
+                <h3 className={styles.fuelTitle}>Humor vocabulary</h3>
+                {terms.map((term) => (
+                  <div key={term.id} className={styles.vocabItem}>
+                    <p className={styles.vocabTerm}>{term.term}</p>
+                    <p className={styles.vocabMeaning}>{term.definition}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className={styles.writerCard}>
+              <h3 className={styles.fuelTitle}>Explore</h3>
+              <p className={styles.fuelContext}>Need random inspiration first?</p>
+              <Link href="/chaos-wall" className={styles.flowLink}>
+                Open Chaos Wall &rarr;
+              </Link>
             </div>
-          </div>
-        )}
-
-        {/* ── Flavor selector ── */}
-        {flavors.length > 0 && (
-          <div className={styles.sectionCard}>
-            <h3 className={styles.sectionLabel}>
-              <span className={styles.sectionAccent} />
-              Humor flavor
-            </h3>
-            <div className={styles.flavorRow}>
-              {flavors.map((flavor) => (
-                <button
-                  key={flavor.id}
-                  className={`${styles.flavorChip} ${
-                    selectedFlavorId === flavor.id ? styles.selected : ""
-                  }`}
-                  type="button"
-                  onClick={() => setSelectedFlavorId(flavor.id)}
-                >
-                  {flavor.slug}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── Caption editor ── */}
-        <div className={styles.sectionCard}>
-          <h3 className={styles.sectionLabel}>
-            <span className={styles.sectionAccent} />
-            Your caption
-          </h3>
-          <textarea
-            className={styles.textArea}
-            placeholder={
-              imageSource?.kind === "gallery"
-                ? "Write your best line for this image..."
-                : "Pick a suggestion above or write your own..."
-            }
-            value={caption}
-            onChange={(event) => setCaption(event.target.value)}
-          />
-
-          <div className={styles.actionRow}>
-            <span className={styles.vibeBadge}>{captionLength} chars</span>
-            <button
-              className={styles.primaryButton}
-              type="button"
-              onClick={handleSubmit}
-              disabled={!canSubmit || busy}
-            >
-              {busy ? "Submitting..." : "Submit caption"}
-            </button>
-            {caption.length > 0 && (
-              <button
-                className={styles.secondaryButton}
-                type="button"
-                onClick={() => setCaption("")}
-              >
-                Clear
-              </button>
-            )}
-            {!userId && (
-              <div className={styles.status}>Sign in to submit.</div>
-            )}
-            {userId && userEmail && (
-              <div className={styles.status}>Signed in as {userEmail}</div>
-            )}
-            {status && <div className={styles.status}>{status}</div>}
           </div>
         </div>
       </div>
 
-      {/* ── Right column: sidebar ── */}
+      {/* ── Right column: combined preview + inspiration ── */}
       <aside className={styles.preview}>
-        <div className={styles.previewCard}>
-          <h3>Live preview</h3>
+        <div
+          className={`${styles.previewCard} ${
+            submitSuccessPulse ? styles.previewCardCelebrating : ""
+          }`}
+        >
+          {submitSuccessPulse && (
+            <div className={styles.submitSuccessBadge} aria-hidden="true">
+              ✓
+            </div>
+          )}
+          <h3>Live preview + caption picks</h3>
           {imageUrl ? (
-            <div
-              className={styles.previewImage}
-              style={{ backgroundImage: `url(${imageUrl})` }}
-            />
+            <div className={styles.previewImageFrame}>
+              <img src={imageUrl} alt="Selected image preview" className={styles.previewImage} />
+            </div>
           ) : (
             <div className={styles.previewImageEmpty}>
               <span>No image selected</span>
@@ -653,41 +569,107 @@ export default function CaptionForge({
           <p className={styles.previewCaption}>
             {caption.trim() || "Your caption preview lands here."}
           </p>
-          <div className={styles.previewMeta}>
-            {selectedFlavor?.slug ?? "No flavor"} &middot;{" "}
-            {imageSource
-              ? imageSource.kind === "gallery"
-                ? imageSource.description || "Gallery image"
-                : "Uploaded image"
-              : "No image"}
-          </div>
-        </div>
 
-        <div className={styles.flowCard}>
-          <h3 className={styles.flowTitle}>How it works</h3>
-          <ol className={styles.flowSteps}>
-            <li className={imageSource ? styles.flowStepDone : styles.flowStepActive}>
-              Upload or pick an image
-            </li>
-            <li className={generatedCaptions.length > 0 ? styles.flowStepDone : imageSource ? styles.flowStepActive : ""}>
-              Generate or browse captions
-            </li>
-            <li className={caption.length > 0 ? styles.flowStepDone : generatedCaptions.length > 0 ? styles.flowStepActive : ""}>
-              Edit your caption
-            </li>
-            <li className={caption.length > 0 ? styles.flowStepActive : ""}>
-              Submit
-            </li>
-          </ol>
+          {generatedCaptions.length > 0 && (
+            <div className={styles.previewSuggestions}>
+              <p className={styles.suggestionsHint}>
+                {suggestionsLabel}: tap a line to instantly preview and edit.
+              </p>
+              <div className={styles.suggestionsList}>
+                {generatedCaptions.map((text, idx) => (
+                  <button
+                    key={idx}
+                    className={`${styles.suggestionChip} ${
+                      caption === text ? styles.active : ""
+                    }`}
+                    type="button"
+                    onClick={() => setCaption(text)}
+                    style={{ animationDelay: `${idx * 50}ms` }}
+                  >
+                    &ldquo;{text}&rdquo;
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className={styles.previewEditor}>
+            <h4 className={styles.previewEditorTitle}>Your caption</h4>
+            <textarea
+              className={`${styles.textArea} ${styles.previewTextArea}`}
+              placeholder="Write your line and preview it above in real time..."
+              value={caption}
+              onChange={(event) => setCaption(event.target.value)}
+            />
+
+            <div className={styles.actionRow}>
+              <span className={styles.vibeBadge}>{captionLength} chars</span>
+              <button
+                className={styles.primaryButton}
+                type="button"
+                onClick={handleSubmit}
+                disabled={!canSubmit || busy}
+              >
+                {busy ? "Submitting..." : "Submit caption"}
+              </button>
+              {caption.length > 0 && (
+                <button
+                  className={styles.secondaryButton}
+                  type="button"
+                  onClick={() => setCaption("")}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            <div className={styles.previewStatusRow}>
+              {!userId && <div className={styles.status}>Sign in to submit.</div>}
+              {userId && userEmail && (
+                <div className={styles.status}>Signed in as {userEmail}</div>
+              )}
+              {status && <div className={styles.status}>{status}</div>}
+            </div>
+          </div>
         </div>
       </aside>
 
-      {/* ── Toast notification ── */}
-      {toast && (
-        <div className={styles.toast}>
-          {toast}
+      {/* ── Full-screen generation overlay ── */}
+      {isGenerating && (
+        <div className={styles.generationOverlay} role="status" aria-live="polite">
+          {generationBackdrop && (
+            <div
+              className={styles.generationBackdrop}
+              style={{ backgroundImage: `url(${generationBackdrop})` }}
+            />
+          )}
+          <div className={styles.generationScrim} />
+          <div className={styles.generationCenter}>
+            <div className={styles.generationVisual}>
+              {generationBackdrop && (
+                <div className={styles.generationImageFrame}>
+                  <img
+                    src={generationBackdrop}
+                    alt="Generating preview"
+                    className={styles.generationImage}
+                  />
+                </div>
+              )}
+              <div className={styles.generationHalo} />
+              <div className={styles.generationRing} />
+              <div className={styles.generationDot} />
+            </div>
+            <p className={styles.generationEyebrow}>Studio in progress</p>
+            <p className={styles.generationTitle}>{generationLabel}</p>
+            <p className={styles.generationText}>
+              Building a fresh caption set with tone and context baked in.
+            </p>
+          </div>
         </div>
       )}
+
+      {/* ── Toast notification ── */}
+      {toast && <div className={styles.toast}>{toast}</div>}
     </section>
   );
 }
