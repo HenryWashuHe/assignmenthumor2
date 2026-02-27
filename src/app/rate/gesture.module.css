@@ -1,0 +1,551 @@
+/* ═══════════════════════════════════════════════
+   gesture.module.css — swipe gesture UI
+   ═══════════════════════════════════════════════ */
+
+/* ── HUD (fixed, bottom-right) ── */
+
+.hud {
+  position: fixed;
+  bottom: 24px;
+  right: 16px;
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  animation: hudSlideIn 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ── Arrow row: [← Nope] [camera] [Funny →] ── */
+
+.arrowRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Arrow blocks flanking the preview */
+.arrowBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 40px;
+  /* opacity driven inline by waveProgress */
+}
+
+.arrowTriggeredLeft  { animation: arrowNudgeLeft  700ms ease-out forwards; }
+.arrowTriggeredRight { animation: arrowNudgeRight 700ms ease-out forwards; }
+
+.arrowGlyph {
+  font-size: 1.35rem;
+  line-height: 1;
+  font-weight: 700;
+  display: block;
+  /* color + transform driven inline */
+}
+
+.arrowHint {
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  /* color driven inline */
+}
+
+/* Progress bar that fills as hand accelerates */
+.arrowProgressTrack {
+  width: 100%;
+  height: 3px;
+  background: rgba(100, 100, 100, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.arrowProgressFill {
+  height: 100%;
+  width: 0;
+  border-radius: 2px;
+  /* width + background driven inline */
+}
+
+/* ── Camera preview ── */
+
+.hudPreview {
+  position: relative;
+  width: 120px;
+  height: 90px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0a0a0a;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+  flex-shrink: 0;
+}
+
+.hudVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transform: scaleX(-1);
+}
+
+.hudCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: scaleX(-1);
+  pointer-events: none;
+}
+
+/* ── Detection ring ── */
+
+.detectionRing {
+  position: absolute;
+  inset: -2px;
+  border-radius: 12px;
+  border: 2px solid rgba(100, 100, 100, 0.3);
+  pointer-events: none;
+  transition: border-color 300ms ease, box-shadow 300ms ease;
+}
+
+.detectionRingActive {
+  border-color: rgba(0, 220, 100, 0.85);
+  box-shadow: 0 0 10px rgba(0, 220, 100, 0.3);
+}
+
+.detectionRingCooling {
+  border-color: rgba(200, 160, 0, 0.55);
+}
+
+/* ── Cooldown SVG ring (wraps the whole preview) ── */
+
+.cooldownSvg {
+  position: absolute;
+  inset: -9px;
+  width: calc(100% + 18px);
+  height: calc(100% + 18px);
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* ── Overlays ── */
+
+.hudLoading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 10, 0.85);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+.cameraError {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  background: rgba(10, 10, 10, 0.9);
+  color: rgba(220, 80, 80, 0.9);
+  font-size: 0.58rem;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* ── Status label ── */
+
+.hudStatus {
+  font-size: 0.6rem;
+  color: var(--ink-tertiary);
+  text-align: center;
+  margin: 0;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+  transition: color 250ms;
+}
+
+.hudStatusReady {
+  color: rgba(0, 200, 80, 0.8);
+}
+
+/* ── Gesture toggle button ── */
+
+.gestureToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-secondary);
+  cursor: pointer;
+  transition: background 150ms, color 150ms, border-color 150ms, transform 120ms;
+  font-family: inherit;
+}
+
+.gestureToggle:hover:not(:disabled) {
+  border-color: var(--ink);
+  color: var(--ink);
+  transform: scale(1.02);
+}
+
+.gestureToggle:active { transform: scale(0.97); }
+
+.gestureToggleActive {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
+.gestureToggleActive:hover:not(:disabled) {
+  background: var(--ink-secondary);
+  border-color: var(--ink-secondary);
+  color: var(--bg);
+}
+
+/* ── Card glow when gesture fires ── */
+
+.cardGlowRight {
+  box-shadow: 0 0 0 3px rgba(0, 200, 80, 0.65), 0 0 28px rgba(0, 200, 80, 0.25);
+  transition: box-shadow 150ms ease;
+}
+
+.cardGlowLeft {
+  box-shadow: 0 0 0 3px rgba(220, 40, 40, 0.65), 0 0 28px rgba(220, 40, 40, 0.25);
+  transition: box-shadow 150ms ease;
+}
+
+/* ═══════════════════════════════════════════════
+   TUTORIAL MODAL
+   ═══════════════════════════════════════════════ */
+
+.tutorialBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(14, 12, 10, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: backdropIn 280ms ease-out forwards;
+}
+
+.tutorialModal {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  padding: 36px 32px 28px;
+  width: min(420px, 92vw);
+  text-align: center;
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  animation: modalIn 360ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Progress dots */
+.progressDots { display: flex; gap: 8px; }
+
+.dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--border-strong);
+  transition: background 300ms, transform 300ms;
+}
+
+.dotActive { background: var(--ink); transform: scale(1.2); }
+
+/* ── Step 1 & 2 illustration ── */
+
+.illustration {
+  width: 120px; height: 80px;
+  display: flex; align-items: center; justify-content: center;
+  margin: 6px 0 2px;
+}
+
+.illustration span { font-size: 3rem; display: block; line-height: 1; }
+
+.animCamera span { animation: cameraPulse 1.3s ease-in-out infinite; }
+.animHand   span { animation: handAppear 2s ease-in-out infinite; }
+
+/* ── Swipe demo (steps 3 & 4) ── */
+
+.swipeDemo {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+  margin: 4px 0 2px;
+}
+
+.swipeDemoTrack {
+  position: relative;
+  height: 64px;
+  background: var(--bg-warm);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+/* Hand emoji that sweeps */
+.swipeHandRight {
+  font-size: 2rem;
+  position: absolute;
+  top: 50%; transform: translateY(-50%);
+  animation: sweepRight 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.swipeHandLeft {
+  font-size: 2rem;
+  position: absolute;
+  top: 50%; transform: translateY(-50%);
+  animation: sweepLeft 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Motion trail */
+.swipeTrailRight {
+  position: absolute;
+  top: 50%; transform: translateY(-50%);
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(to right, transparent, rgba(0, 200, 70, 0.6));
+  animation: trailRight 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.swipeTrailLeft {
+  position: absolute;
+  top: 50%; transform: translateY(-50%);
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(to left, transparent, rgba(60, 120, 255, 0.5));
+  animation: trailLeft 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Label row */
+.swipeDemoLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+.swipeLabelNope  { color: rgba(190, 50, 50, 0.75); }
+.swipeLabelFunny { color: rgba(0, 170, 60, 0.85); }
+
+/* ── Tutorial text ── */
+
+.tutorialTitle {
+  margin: 0;
+  font-family: var(--font-display), serif;
+  font-size: 1.3rem;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.tutorialDesc {
+  margin: 0;
+  font-size: 0.87rem;
+  color: var(--ink-secondary);
+  line-height: 1.65;
+  max-width: 320px;
+}
+
+/* ── Detection feedback (step 2) ── */
+
+.detectionFeedback {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 16px; border-radius: 999px;
+  font-size: 0.78rem; font-weight: 600;
+  background: var(--bg-warm); color: var(--ink-tertiary);
+  border: 1px solid var(--border);
+  transition: background 300ms, color 300ms, border-color 300ms;
+}
+
+.detectionFeedbackFound {
+  background: rgba(0, 200, 80, 0.1);
+  color: rgb(0, 155, 60);
+  border-color: rgba(0, 200, 80, 0.4);
+}
+
+.detectionDot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--border-strong); flex-shrink: 0;
+  transition: background 300ms;
+}
+
+.detectionDotFound {
+  background: rgb(0, 200, 80);
+  box-shadow: 0 0 6px rgba(0, 200, 80, 0.6);
+  animation: pulseDot 1s ease-in-out infinite;
+}
+
+/* ── Gesture feedback (steps 3 & 4) ── */
+
+.gestureFeedback {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 16px; border-radius: 999px;
+  font-size: 0.78rem; font-weight: 600;
+  background: var(--bg-warm); color: var(--ink-tertiary);
+  border: 1px solid var(--border);
+  transition: background 300ms, color 300ms, border-color 300ms;
+}
+
+.gestureFeedbackDone {
+  background: rgba(0, 200, 80, 0.1);
+  color: rgb(0, 155, 60);
+  border-color: rgba(0, 200, 80, 0.4);
+}
+
+/* ── Done button (step 4 success) ── */
+
+.doneButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg);
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 150ms, background 150ms;
+  animation: doneButtonPop 400ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.doneButton:hover { transform: scale(1.04); }
+.doneButton:active { transform: scale(0.97); }
+
+/* ── Skip ── */
+
+.skipTutorial {
+  background: transparent; border: none;
+  color: var(--ink-tertiary); font-size: 0.75rem; font-weight: 500;
+  cursor: pointer; font-family: inherit; padding: 4px 8px; margin-top: 2px;
+  transition: color 150ms;
+}
+
+.skipTutorial:hover { color: var(--ink-secondary); text-decoration: underline; }
+
+/* ═══════════════════════════════════════════════
+   KEYFRAMES
+   ═══════════════════════════════════════════════ */
+
+@keyframes hudSlideIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes backdropIn {
+  from { opacity: 0; } to { opacity: 1; }
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.88) translateY(16px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes cameraPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.2); opacity: 0.6; }
+}
+
+@keyframes handAppear {
+  0%   { transform: translateX(-50px); opacity: 0; }
+  25%  { transform: translateX(0); opacity: 1; }
+  65%  { transform: translateX(0) rotate(10deg); }
+  85%  { transform: translateX(0) rotate(-7deg); }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+/* Hand sweeps right (mirror-right = toward right edge of preview) */
+@keyframes sweepRight {
+  0%   { left: 10%;  opacity: 0; }
+  12%  { left: 10%;  opacity: 1; }
+  70%  { left: 78%;  opacity: 1; }
+  71%  { opacity: 0; }
+  100% { left: 10%;  opacity: 0; }
+}
+
+/* Hand sweeps left */
+@keyframes sweepLeft {
+  0%   { right: 10%; opacity: 0; }
+  12%  { right: 10%; opacity: 1; }
+  70%  { right: 78%; opacity: 1; }
+  71%  { opacity: 0; }
+  100% { right: 10%; opacity: 0; }
+}
+
+@keyframes trailRight {
+  0%   { left: 10%; width: 0;   opacity: 0; }
+  15%  { opacity: 0; }
+  45%  { left: 10%; width: 55%; opacity: 0.7; }
+  70%  { left: 10%; width: 65%; opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes trailLeft {
+  0%   { right: 10%; width: 0;   opacity: 0; }
+  15%  { opacity: 0; }
+  45%  { right: 10%; width: 55%; opacity: 0.6; }
+  70%  { right: 10%; width: 65%; opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes arrowNudgeLeft {
+  0%   { transform: translateX(0); }
+  25%  { transform: translateX(-6px); }
+  60%  { transform: translateX(0); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes arrowNudgeRight {
+  0%   { transform: translateX(0); }
+  25%  { transform: translateX(6px); }
+  60%  { transform: translateX(0); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes doneButtonPop {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulseDot {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.3); }
+}
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════ */
+
+@media (max-width: 640px) {
+  .hud { bottom: 88px; right: 10px; }
+
+  .hudPreview { width: 100px; height: 75px; }
+
+  .arrowBlock { width: 30px; }
+  .arrowGlyph { font-size: 1.1rem; }
+  .arrowHint  { font-size: 0.45rem; }
+
+  .tutorialModal { padding: 28px 20px 20px; border-radius: 16px; }
+  .tutorialTitle  { font-size: 1.15rem; }
+}

@@ -334,6 +334,14 @@
   transform: none;
 }
 
+/* ── Gesture toggle row ── */
+
+.gestureRow {
+  display: flex;
+  justify-content: center;
+  margin-top: -2px;
+}
+
 /* ── Hotkey hints ── */
 
 .hints {

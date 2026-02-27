@@ -1,12 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { NormalizedCaption } from "./page";
+import { useGestureRating } from "./useGestureRating";
 import styles from "./page.module.css";
+import gStyles from "./gesture.module.css";
 
-/* ── types ── */
+/* ── Lazy-load gesture UI (camera + tutorial are browser-only) ── */
+
+const GestureCamera = dynamic(() => import("./GestureCamera"), { ssr: false });
+const GestureTutorial = dynamic(() => import("./GestureTutorial"), {
+  ssr: false,
+});
+
+/* ── Types ── */
 
 interface LastVote {
   captionId: string;
@@ -26,7 +36,7 @@ interface Props {
 const AUTO_ADVANCE_MS = 900;
 const UNDO_TOAST_MS = 6000;
 
-/* ── component ── */
+/* ── Component ── */
 
 export default function RatingDeck({
   captions,
@@ -52,14 +62,23 @@ export default function RatingDeck({
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  /* gesture state */
+  const [gestureMode, setGestureMode] = useState(false);
+  const [tutorialDone, setTutorialDone] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [cardGlow, setCardGlow] = useState<"left" | "right" | null>(null);
+
+  // Synchronous lock — React state batching means isSubmitting can be stale
+  // in closures. This ref updates instantly, preventing double-submit.
+  const submittingRef = useRef(false);
+
   const supabase = useMemo(() => createClient(), []);
 
   const current = queue[currentIndex] ?? null;
   const nextCaption = queue[currentIndex + 1] ?? null;
   const total = queue.length;
   const totalRated = previouslyRated + sessionRated;
-  const progressPct =
-    total > 0 ? (currentIndex / total) * 100 : 0;
+  const progressPct = total > 0 ? (currentIndex / total) * 100 : 0;
 
   /* preload next image */
   useEffect(() => {
@@ -123,9 +142,10 @@ export default function RatingDeck({
   /* submit vote */
   const submitVote = useCallback(
     async (value: number) => {
-      if (!current || votedIds.has(current.id) || isSubmitting || exitDir)
+      if (!current || votedIds.has(current.id) || submittingRef.current || exitDir)
         return;
 
+      submittingRef.current = true;
       setIsSubmitting(true);
       setError(null);
 
@@ -142,6 +162,7 @@ export default function RatingDeck({
 
       if (insertError) {
         setError(insertError.message);
+        submittingRef.current = false;
         setIsSubmitting(false);
         return;
       }
@@ -158,6 +179,7 @@ export default function RatingDeck({
       setStampLabel(value === 1 ? "Funny!" : "Nope");
       setExitDir(value === 1 ? "right" : "left");
       setLastVote(voteInfo);
+      submittingRef.current = false;
       setIsSubmitting(false);
 
       showUndoToast();
@@ -224,6 +246,31 @@ export default function RatingDeck({
     }, 350);
   }, [exitDir, currentIndex, total, advanceCard]);
 
+  /* gesture callback — glow and vote fire together; ref lock prevents double-submit */
+  const handleGesture = useCallback(
+    (dir: "left" | "right") => {
+      setCardGlow(dir);
+      setTimeout(() => setCardGlow(null), 300);
+      submitVote(dir === "right" ? 1 : -1);
+    },
+    [submitVote]
+  );
+
+  /* gesture hook — MediaPipe WASM only initializes when gestureMode=true */
+  const gestureState = useGestureRating({
+    enabled: gestureMode,
+    onGesture: handleGesture,
+  });
+
+  /* gesture toggle handler */
+  const toggleGestureMode = useCallback(() => {
+    const next = !gestureMode;
+    setGestureMode(next);
+    if (next && !tutorialDone) {
+      setShowTutorial(true);
+    }
+  }, [gestureMode, tutorialDone]);
+
   /* keyboard shortcuts */
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -277,6 +324,8 @@ export default function RatingDeck({
     exitDir === "right" ? styles.cardExitRight : "",
     exitDir === "left" ? styles.cardExitLeft : "",
     entering ? styles.cardEnter : "",
+    cardGlow === "right" ? gStyles.cardGlowRight : "",
+    cardGlow === "left" ? gStyles.cardGlowLeft : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -384,10 +433,30 @@ export default function RatingDeck({
         </button>
       </div>
 
+      {/* gesture toggle */}
+      <div className={styles.gestureRow}>
+        <button
+          type="button"
+          className={`${gStyles.gestureToggle} ${
+            gestureMode ? gStyles.gestureToggleActive : ""
+          }`}
+          onClick={toggleGestureMode}
+          aria-pressed={gestureMode}
+        >
+          🖐 {gestureMode ? "Gestures ON" : "Use Gestures"}
+        </button>
+      </div>
+
       {/* hotkey hints */}
       <div className={styles.hints}>
         <kbd>F</kbd> funny &middot; <kbd>D</kbd> not funny &middot;{" "}
         <kbd>N</kbd> skip &middot; <kbd>U</kbd> undo
+        {gestureMode && (
+          <>
+            &nbsp;&middot; wave <strong>→</strong> funny &nbsp;&middot; wave{" "}
+            <strong>←</strong> not funny
+          </>
+        )}
       </div>
 
       {/* undo toast */}
@@ -414,6 +483,25 @@ export default function RatingDeck({
           </div>
         </div>
       )}
+
+      {/* gesture tutorial (lazy, shown once on first activation) */}
+      {showTutorial && (
+        <GestureTutorial
+          handDetected={gestureState.handDetected}
+          gestureCount={gestureState.gestureCount}
+          onComplete={() => {
+            setShowTutorial(false);
+            setTutorialDone(true);
+          }}
+          onSkip={() => {
+            setShowTutorial(false);
+            setTutorialDone(true);
+          }}
+        />
+      )}
+
+      {/* gesture camera HUD (lazy, visible when mode is active) */}
+      {gestureMode && <GestureCamera state={gestureState} />}
     </section>
   );
 }
