@@ -32,6 +32,8 @@ const hasSupabaseEnv =
 
 /* ── data fetchers ── */
 
+export const PAGE_SIZE = 24;
+
 async function getCaptions(mode: "top" | "recent"): Promise<CaptionRow[]> {
   if (!hasSupabaseEnv) return [];
   const orderCol = mode === "top" ? "like_count" : "created_datetime_utc";
@@ -40,7 +42,7 @@ async function getCaptions(mode: "top" | "recent"): Promise<CaptionRow[]> {
     .select("id, content, like_count, created_datetime_utc, humor_flavors(slug), images(url, image_description)")
     .eq("is_public", true)
     .order(orderCol, { ascending: false })
-    .limit(200);
+    .limit(PAGE_SIZE);
   if (error || !data) return [];
   return (data as unknown as CaptionRow[]).filter((c) => {
     const img = Array.isArray(c.images) ? c.images[0] : c.images;
@@ -76,16 +78,16 @@ export default async function GalleryPage({
     getCaptions(mode),
     getExamples(),
   ]);
-  const normalizedCaptions = captions.map((caption) => ({
+  const primaryCaptions = captions.map((caption) => ({
     id: caption.id,
     content: caption.content,
     like_count: caption.like_count,
+    created_datetime_utc: caption.created_datetime_utc,
     humor_flavors: caption.humor_flavors,
     image: Array.isArray(caption.images)
       ? caption.images[0]
       : caption.images ?? null,
   }));
-  const primaryCaptions = normalizedCaptions.slice(0, 24);
 
   return (
     <div className={styles.page}>
@@ -125,7 +127,7 @@ export default async function GalleryPage({
               : <p>Missing Supabase env keys.</p>}
           </div>
         ) : (
-          <GalleryDeck captions={primaryCaptions} />
+          <GalleryDeck captions={primaryCaptions} sortMode={mode} />
         )}
 
         {examples.length > 0 && (

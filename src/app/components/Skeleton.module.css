@@ -1,0 +1,83 @@
+/* ── Shimmer animation ── */
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-warm) 25%,
+    var(--border) 50%,
+    var(--bg-warm) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Variants ── */
+
+.text {
+  height: 14px;
+  border-radius: 4px;
+  display: block;
+}
+
+.image {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-md);
+}
+
+.card {
+  width: 100%;
+  border-radius: var(--radius-md);
+  min-height: 120px;
+}
+
+/* ── Gallery card skeleton ── */
+
+.cardSkeleton {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.cardImageSkeleton {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: linear-gradient(
+    90deg,
+    var(--bg-warm) 25%,
+    var(--border) 50%,
+    var(--bg-warm) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.cardBodySkeleton {
+  padding: 14px 16px 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.cardMetaSkeleton {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* ── Gallery grid skeleton ── */
+
+.gridSkeleton {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import Image from "next/image";
 import styles from "./page.module.css";
 
 interface CaptionCard {
@@ -144,10 +145,12 @@ export default function RandomCaptionChaos({ captions }: Props) {
           >
             {card.image?.url && (
               <div className={styles.chaosImage}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={card.image.url}
                   alt={card.image.image_description ?? "Caption image"}
+                  fill
+                  sizes="(max-width: 640px) 50vw, 300px"
+                  style={{ objectFit: "cover" }}
                 />
               </div>
             )}

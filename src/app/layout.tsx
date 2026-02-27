@@ -1,20 +1,8 @@
 import type { Metadata } from "next";
-import { Shrikhand, Space_Grotesk } from "next/font/google";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import UserMenu from "./UserMenu";
 import "./globals.css";
-
-const displayFont = Shrikhand({
-  weight: "400",
-  variable: "--font-display",
-  subsets: ["latin"],
-});
-
-const bodyFont = Space_Grotesk({
-  variable: "--font-body",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "The Punchline",
@@ -49,7 +37,7 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className={`${displayFont.variable} ${bodyFont.variable}`}>
+      <body>
         <header
           style={{
             display: "flex",

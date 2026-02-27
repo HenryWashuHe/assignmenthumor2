@@ -24,7 +24,10 @@ interface CaptionRow {
   id: string;
   content: string | null;
   like_count: number | null;
-  images: { url: string | null; image_description: string | null }[] | null;
+  images:
+    | { url: string | null; image_description: string | null }
+    | { url: string | null; image_description: string | null }[]
+    | null;
 }
 
 const hasSupabaseEnv =
@@ -53,7 +56,7 @@ const pickDuelPair = (captions: CaptionRow[]): CaptionRow[] => {
   if (captions.length <= 2) return captions;
   const byImage = new Map<string, CaptionRow[]>();
   for (const caption of captions) {
-    const imageKey = caption.images?.[0]?.url ?? "no-image";
+    const imageKey = getCaptionImage(caption.images)?.url ?? "no-image";
     const list = byImage.get(imageKey) ?? [];
     list.push(caption);
     byImage.set(imageKey, list);
@@ -93,6 +96,10 @@ async function getContext(id: number): Promise<CommunityContextRow | null> {
 const sanitizeTag = (tag: string) =>
   tag.replace(/[%_,]/g, "").trim().toLowerCase();
 
+const getCaptionImage = (
+  images: CaptionRow["images"]
+) => (Array.isArray(images) ? images[0] ?? null : images);
+
 const buildCaptionOrFilter = (tags: string[]) => {
   const clauses: string[] = [];
   tags.forEach((tag) => {
@@ -128,7 +135,10 @@ async function getContextCaptions(tags: string[]): Promise<CaptionRow[]> {
       : await query.order("like_count", { ascending: false }).limit(20);
 
   if (error || !data) return [];
-  return (data as CaptionRow[]).filter((caption) => caption.content);
+  return (data as CaptionRow[]).filter((caption) => {
+    const image = getCaptionImage(caption.images);
+    return Boolean(caption.content && image?.url);
+  });
 }
 
 export default async function ContextDetail({
@@ -165,20 +175,20 @@ export default async function ContextDetail({
     1,
     ...duelPair.map((caption) => caption.like_count ?? 0)
   );
-  const duelCaptions: DuelCaption[] = duelPair.map((caption) => ({
-    id: caption.id,
-    content: caption.content ?? "Untitled caption",
-    like_count: caption.like_count ?? 0,
-    hype: Math.round(((caption.like_count ?? 0) / likeMax) * 100),
-    imageUrl: caption.images?.[0]?.url ?? null,
-    imageDescription: caption.images?.[0]?.image_description ?? null,
-  }));
+  const duelCaptions: DuelCaption[] = duelPair.map((caption) => {
+    const image = getCaptionImage(caption.images);
+    return {
+      id: caption.id,
+      content: caption.content ?? "Untitled caption",
+      like_count: caption.like_count ?? 0,
+      hype: Math.round(((caption.like_count ?? 0) / likeMax) * 100),
+      imageUrl: image?.url ?? null,
+      imageDescription: image?.image_description ?? null,
+    };
+  });
 
-  const duelImage =
-    duelCaptions.find((caption) => caption.imageUrl)?.imageUrl ?? null;
-  const duelImageDescription =
-    duelCaptions.find((caption) => caption.imageDescription)?.imageDescription ??
-    null;
+  const duelImage = duelCaptions[0]?.imageUrl ?? null;
+  const duelImageDescription = duelCaptions[0]?.imageDescription ?? null;
 
   return (
     <div className={styles.page}>

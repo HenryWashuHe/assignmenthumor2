@@ -13,6 +13,7 @@ interface ImageRow {
   image_description: string | null;
   is_common_use: boolean | null;
   is_public: boolean | null;
+  top_caption: string | null;
 }
 
 interface TermRow {
@@ -37,11 +38,38 @@ async function getImages(): Promise<ImageRow[]> {
   if (!hasSupabaseEnv) return [];
   const { data, error } = await supabase
     .from("images")
-    .select("id,url,image_description,is_common_use,is_public")
+    .select("id,url,image_description,is_common_use,is_public,captions(content, like_count, is_public)")
     .or("is_public.eq.true,is_common_use.eq.true")
-    .limit(6);
+    .limit(18);
   if (error || !data) return [];
-  return data as ImageRow[];
+  return (data as unknown as Array<{
+    id: string;
+    url: string | null;
+    image_description: string | null;
+    is_common_use: boolean | null;
+    is_public: boolean | null;
+    captions:
+      | { content: string | null; like_count: number | null; is_public: boolean | null }[]
+      | null;
+  }>)
+    .map((image) => {
+      const topCaption =
+        [...(image.captions ?? [])]
+          .filter((caption) => caption.is_public && caption.content)
+          .sort((a, b) => (b.like_count ?? 0) - (a.like_count ?? 0))[0]
+          ?.content ?? null;
+
+      return {
+        id: image.id,
+        url: image.url,
+        image_description: image.image_description,
+        is_common_use: image.is_common_use,
+        is_public: image.is_public,
+        top_caption: topCaption,
+      };
+    })
+    .filter((image) => Boolean(image.url && image.top_caption))
+    .slice(0, 6);
 }
 
 async function getTerms(): Promise<TermRow[]> {

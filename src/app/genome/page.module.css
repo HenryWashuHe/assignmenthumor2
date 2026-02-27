@@ -211,6 +211,16 @@
   gap: 8px;
 }
 
+.flavorMedia {
+  position: relative;
+  width: min(100%, 280px);
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
 .flavorDesc {
   margin: 0;
   font-size: 0.82rem;
@@ -303,13 +313,7 @@
   aspect-ratio: 3 / 2;
   overflow: hidden;
   background: var(--bg-warm);
-}
-
-.celebImg img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+  position: relative;
 }
 
 .celebBody {
@@ -459,13 +463,7 @@
   aspect-ratio: 16 / 9;
   overflow: hidden;
   background: var(--bg-warm);
-}
-
-.archiveImg img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+  position: relative;
 }
 
 .archiveBody {

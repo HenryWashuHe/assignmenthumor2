@@ -1,6 +1,9 @@
 :root {
   color-scheme: light;
 
+  --font-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --font-body: "Avenir Next", "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+
   --bg: #FAF8F5;
   --bg-warm: #F5F2ED;
   --surface: #FFFFFF;
@@ -44,7 +47,7 @@ body {
 }
 
 body {
-  font-family: var(--font-body), "Space Grotesk", system-ui, sans-serif;
+  font-family: var(--font-body), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-size: 15px;
@@ -53,6 +56,11 @@ body {
 
 * {
   box-sizing: border-box;
+}
+
+/* Smooth fade-in for next/image once loaded */
+img[data-nimg] {
+  transition: opacity 0.2s ease;
 }
 
 a {

@@ -270,18 +270,8 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 9px;
-  display: flex;
+  display: grid;
   gap: 8px;
-  align-items: center;
-}
-
-.selectedImageBanner img {
-  width: 86px;
-  height: 62px;
-  object-fit: contain;
-  border-radius: 8px;
-  background: var(--bg-warm, var(--bg));
-  border: 1px solid var(--border);
 }
 
 .bannerBody {
@@ -298,6 +288,13 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--ink-secondary);
+}
+
+.bannerCaption {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--ink);
 }
 
 .bannerActions {
@@ -392,16 +389,23 @@
   background: var(--bg-warm, var(--bg));
   overflow: hidden;
   border: 1px solid var(--border);
-}
-
-.imageThumbImg {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center;
+  position: relative;
 }
 
 .imageMeta {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.imageCaption {
+  margin: 0;
+  font-size: 0.64rem;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.imageDescription {
   margin: 0;
   font-size: 0.64rem;
   color: var(--ink-secondary);
@@ -455,7 +459,6 @@
   color: var(--ink);
 }
 
-.previewImageFrame,
 .previewImageEmpty {
   width: 100%;
   min-height: clamp(210px, 34vh, 390px);
@@ -464,19 +467,14 @@
 }
 
 .previewImageFrame {
-  border: 1px solid var(--border);
-  background: var(--bg-warm, var(--bg));
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-}
-
-.previewImage {
   width: 100%;
   height: clamp(210px, 34vh, 390px);
-  object-fit: contain;
-  object-position: center;
-  display: block;
+  border-radius: 9px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-warm, var(--bg));
+  overflow: hidden;
+  position: relative;
 }
 
 .previewImageEmpty {
@@ -755,15 +753,6 @@
   place-items: center;
 }
 
-.generationBackdrop {
-  position: absolute;
-  inset: -20px;
-  background-size: cover;
-  background-position: center;
-  filter: blur(16px);
-  transform: scale(1.08);
-}
-
 .generationScrim {
   position: absolute;
   inset: 0;
@@ -796,23 +785,6 @@
   display: grid;
   place-items: center;
   margin-bottom: 8px;
-}
-
-.generationImageFrame {
-  position: absolute;
-  inset: 0;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.52);
-  background: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28);
-}
-
-.generationImage {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center;
 }
 
 .generationHalo {
@@ -941,25 +913,18 @@
     grid-template-columns: 1fr;
   }
 
-  .previewImageFrame,
-  .previewImageEmpty {
-    min-height: clamp(186px, 34vh, 340px);
+  .previewImageFrame {
+    height: clamp(186px, 34vh, 340px);
   }
 
-  .previewImage {
-    height: clamp(186px, 34vh, 340px);
+  .previewImageEmpty {
+    min-height: clamp(186px, 34vh, 340px);
   }
 }
 
 @media (max-width: 640px) {
   .selectedImageBanner {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .selectedImageBanner img {
-    width: 100%;
-    height: 150px;
+    gap: 10px;
   }
 
   .bannerActions {

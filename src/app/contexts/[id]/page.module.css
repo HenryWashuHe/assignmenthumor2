@@ -130,6 +130,23 @@
   gap: 20px;
 }
 
+.duelVisual {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
+.duelPoster {
+  position: relative;
+  width: min(100%, 460px);
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.24);
+}
+
 .duelHeader {
   display: flex;
   justify-content: space-between;

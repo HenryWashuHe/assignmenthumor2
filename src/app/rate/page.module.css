@@ -110,17 +110,21 @@
 
 .peekImage {
   width: 100%;
-  max-height: 40vh;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
   background: var(--bg-warm);
+  position: relative;
 }
 
-.peekImage img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  filter: blur(2px);
+.peekBody {
+  padding: 14px 16px 16px;
+}
+
+.peekCaption {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--ink);
 }
 
 /* ── Current card ── */
@@ -157,17 +161,10 @@
 
 .cardImage {
   width: 100%;
-  max-height: 40vh;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
   background: var(--bg-warm);
-}
-
-.cardImage img {
-  width: 100%;
-  height: 100%;
-  max-height: 40vh;
-  object-fit: cover;
-  display: block;
+  position: relative;
 }
 
 .cardBody {

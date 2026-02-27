@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { NormalizedCaption } from "./page";
@@ -43,7 +44,9 @@ export default function RatingDeck({
   profileId,
   previouslyRated,
 }: Props) {
-  const [queue] = useState<NormalizedCaption[]>(captions);
+  const [queue] = useState<NormalizedCaption[]>(() =>
+    captions.filter((caption) => Boolean(caption.imageUrl))
+  );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [sessionRated, setSessionRated] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -192,7 +195,6 @@ export default function RatingDeck({
       current,
       currentIndex,
       votedIds,
-      isSubmitting,
       exitDir,
       supabase,
       profileId,
@@ -360,10 +362,23 @@ export default function RatingDeck({
         {nextCaption && (
           <div className={styles.peekCard} aria-hidden="true">
             {nextCaption.imageUrl && (
-              <div className={styles.peekImage}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={nextCaption.imageUrl} alt="" />
-              </div>
+              <>
+                <div className={styles.peekImage}>
+                  <Image
+                    src={nextCaption.imageUrl}
+                    alt=""
+                    fill
+                    sizes="(max-width: 640px) 100vw, 480px"
+                    style={{ objectFit: "cover", filter: "blur(2px)" }}
+                    aria-hidden
+                  />
+                </div>
+                <div className={styles.peekBody}>
+                  <p className={styles.peekCaption}>
+                    &ldquo;{nextCaption.content ?? "Next caption queued."}&rdquo;
+                  </p>
+                </div>
+              </>
             )}
           </div>
         )}
@@ -371,10 +386,13 @@ export default function RatingDeck({
         <article className={cardClasses}>
           {current.imageUrl && (
             <div className={styles.cardImage}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={current.imageUrl}
                 alt={current.imageAlt ?? "Caption image"}
+                fill
+                sizes="(max-width: 640px) 100vw, 480px"
+                style={{ objectFit: "cover" }}
+                priority
               />
             </div>
           )}

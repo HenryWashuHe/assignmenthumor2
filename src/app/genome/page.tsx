@@ -18,6 +18,8 @@ export interface FlavorStat {
   totalLikes: number;
   avgLikes: number;
   topCaption: string | null;
+  topImageUrl: string | null;
+  topImageAlt: string | null;
 }
 
 export interface CelebImage {
@@ -59,24 +61,66 @@ export interface HourBucket {
 
 /* ── data fetchers ── */
 
+interface CaptionImage {
+  url: string | null;
+  image_description: string | null;
+}
+
+const getCaptionImage = (images: CaptionImage | CaptionImage[] | null) =>
+  Array.isArray(images) ? images[0] ?? null : images;
+
 async function getFlavorStats(): Promise<FlavorStat[]> {
   if (!hasSupabaseEnv) return [];
   const { data } = await supabase
     .from("captions")
-    .select("content, like_count, humor_flavors(slug, description)")
+    .select("content, like_count, images(url, image_description), humor_flavors(slug, description)")
     .eq("is_public", true)
     .not("humor_flavor_id", "is", null)
     .order("like_count", { ascending: false })
     .limit(300);
   if (!data) return [];
 
-  const map = new Map<string, { slug: string; description: string | null; count: number; totalLikes: number; topCaption: string | null; topLikes: number }>();
-  for (const c of data as unknown as { content: string; like_count: number; humor_flavors: { slug: string; description: string | null } | null }[]) {
+  const map = new Map<string, {
+    slug: string;
+    description: string | null;
+    count: number;
+    totalLikes: number;
+    topCaption: string | null;
+    topImageUrl: string | null;
+    topImageAlt: string | null;
+    topImageLikes: number;
+  }>();
+  for (const c of data as unknown as {
+    content: string | null;
+    like_count: number;
+    images: CaptionImage | CaptionImage[] | null;
+    humor_flavors: { slug: string; description: string | null } | null;
+  }[]) {
     const slug = c.humor_flavors?.slug;
     if (!slug) continue;
+    const image = getCaptionImage(c.images);
     const e = map.get(slug);
-    if (e) { e.count++; e.totalLikes += c.like_count; if (c.like_count > e.topLikes) { e.topLikes = c.like_count; e.topCaption = c.content; } }
-    else map.set(slug, { slug, description: c.humor_flavors?.description ?? null, count: 1, totalLikes: c.like_count, topCaption: c.content, topLikes: c.like_count });
+    if (e) {
+      e.count++;
+      e.totalLikes += c.like_count;
+      if (image?.url && c.like_count > e.topImageLikes) {
+        e.topImageLikes = c.like_count;
+        e.topCaption = c.content;
+        e.topImageUrl = image.url;
+        e.topImageAlt = image.image_description;
+      }
+    } else {
+      map.set(slug, {
+        slug,
+        description: c.humor_flavors?.description ?? null,
+        count: 1,
+        totalLikes: c.like_count,
+        topCaption: image?.url ? c.content : null,
+        topImageUrl: image?.url ?? null,
+        topImageAlt: image?.image_description ?? null,
+        topImageLikes: image?.url ? c.like_count : -1,
+      });
+    }
   }
   return Array.from(map.values()).map(f => ({ ...f, avgLikes: f.count > 0 ? Math.round((f.totalLikes / f.count) * 10) / 10 : 0 })).sort((a, b) => b.avgLikes - a.avgLikes);
 }

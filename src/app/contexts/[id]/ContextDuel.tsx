@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import styles from "./page.module.css";
 
 const ROUND_SECONDS = 20;
@@ -29,20 +30,16 @@ export default function ContextDuel({
 }: ContextDuelProps) {
   const [timeLeft, setTimeLeft] = useState(ROUND_SECONDS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [isRecap, setIsRecap] = useState(false);
   const [shakeId, setShakeId] = useState<string | null>(null);
+  const isRecap = timeLeft <= 0;
 
   useEffect(() => {
     if (isRecap) return;
-    if (timeLeft <= 0) {
-      setIsRecap(true);
-      return;
-    }
     const interval = setInterval(() => {
-      setTimeLeft((prev) => prev - 1);
+      setTimeLeft((prev) => Math.max(0, prev - 1));
     }, 1000);
     return () => clearInterval(interval);
-  }, [isRecap, timeLeft]);
+  }, [isRecap]);
 
   const timerWidth = Math.max(0, (timeLeft / ROUND_SECONDS) * 100);
 
@@ -62,12 +59,6 @@ export default function ContextDuel({
 
   return (
     <section className={styles.duelShell}>
-      {imageUrl && (
-        <div
-          className={styles.backdrop}
-          style={{ backgroundImage: `url(${imageUrl})` }}
-        />
-      )}
       <div className={styles.backdropEdge} />
       <div className={styles.duelBody}>
         <div className={styles.duelHeader}>
@@ -77,9 +68,25 @@ export default function ContextDuel({
         <div className={styles.timerBar}>
           <div className={styles.timerFill} style={{ width: `${timerWidth}%` }} />
         </div>
-        {imageDescription && (
+        {imageUrl ? (
+          <div className={styles.duelVisual}>
+            <div className={styles.duelPoster}>
+              <Image
+                src={imageUrl}
+                alt={imageDescription ?? "Context duel image"}
+                fill
+                sizes="(max-width: 720px) 100vw, 460px"
+                style={{ objectFit: "cover" }}
+                priority
+              />
+            </div>
+            {imageDescription && (
+              <div className={styles.window}>Image context: {imageDescription}</div>
+            )}
+          </div>
+        ) : imageDescription ? (
           <div className={styles.window}>Image context: {imageDescription}</div>
-        )}
+        ) : null}
 
         {captions.length === 0 ? (
           <div className={styles.empty}>

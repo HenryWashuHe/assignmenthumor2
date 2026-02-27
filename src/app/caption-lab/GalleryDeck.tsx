@@ -1,27 +1,94 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import styles from "./page.module.css";
+import { GalleryCardSkeleton } from "@/app/components/Skeleton";
 
 interface GalleryCaption {
   id: string;
   content: string | null;
   like_count: number | null;
+  created_datetime_utc: string | null;
   humor_flavors: { slug: string } | null;
   image: { url: string | null; image_description: string | null } | null;
 }
 
 interface Props {
   captions: GalleryCaption[];
+  sortMode: "top" | "recent";
 }
 
-export default function GalleryDeck({ captions }: Props) {
-  const [mode, setMode] = useState<"grid" | "deck">("deck");
+interface ApiCaption extends GalleryCaption {
+  _cursorTop: number | null;
+  _cursorRecent: string | null;
+}
+
+export default function GalleryDeck({ captions, sortMode }: Props) {
+  const [viewMode, setViewMode] = useState<"grid" | "deck">("deck");
   const [index, setIndex] = useState(0);
   const [showMeta, setShowMeta] = useState(false);
 
-  const current = captions[index] ?? null;
-  const total = captions.length;
+  /* ── Infinite scroll state ── */
+  const [allCaptions, setAllCaptions] = useState<GalleryCaption[]>(captions);
+  const [hasMore, setHasMore] = useState(captions.length === 24);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Reset when initial captions change (mode switch via URL)
+  useEffect(() => {
+    setAllCaptions(captions);
+    setHasMore(captions.length === 24);
+  }, [captions]);
+
+  const fetchMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+
+    const last = allCaptions[allCaptions.length - 1];
+    const cursor =
+      sortMode === "top"
+        ? String(last?.like_count ?? "")
+        : (last?.created_datetime_utc ?? "");
+
+    try {
+      const res = await fetch(
+        `/api/captions?mode=${sortMode}&cursor=${encodeURIComponent(cursor)}`
+      );
+      if (!res.ok) throw new Error("Failed to load more");
+      const { captions: next, hasMore: more } = await res.json() as {
+        captions: ApiCaption[];
+        hasMore: boolean;
+      };
+      setAllCaptions((prev) => [...prev, ...next]);
+      setHasMore(more);
+    } catch {
+      // silently fail — user can scroll back up and try again
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, allCaptions, sortMode]);
+
+  /* ── IntersectionObserver for infinite scroll (grid mode only) ── */
+  useEffect(() => {
+    if (viewMode !== "grid") return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) fetchMore();
+      },
+      { rootMargin: "200px" }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [viewMode, fetchMore]);
+
+  /* ── Deck navigation ── */
+  const total = allCaptions.length;
+  const current = allCaptions[index] ?? null;
 
   const next = useCallback(() => {
     if (total === 0) return;
@@ -52,7 +119,7 @@ export default function GalleryDeck({ captions }: Props) {
         target?.tagName === "TEXTAREA" ||
         target?.tagName === "INPUT" ||
         target?.isContentEditable;
-      if (isTypingTarget || mode !== "deck") return;
+      if (isTypingTarget || viewMode !== "deck") return;
 
       if (event.key === "ArrowRight") next();
       if (event.key === "ArrowLeft") prev();
@@ -62,7 +129,7 @@ export default function GalleryDeck({ captions }: Props) {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [mode, next, prev, surprise]);
+  }, [viewMode, next, prev, surprise]);
 
   const statLabel = useMemo(() => {
     if (!current) return "No entries";
@@ -75,15 +142,15 @@ export default function GalleryDeck({ captions }: Props) {
         <div className={styles.modeRow}>
           <button
             type="button"
-            className={`${styles.modeBtn} ${mode === "deck" ? styles.modeBtnActive : ""}`}
-            onClick={() => setMode("deck")}
+            className={`${styles.modeBtn} ${viewMode === "deck" ? styles.modeBtnActive : ""}`}
+            onClick={() => setViewMode("deck")}
           >
             Play deck
           </button>
           <button
             type="button"
-            className={`${styles.modeBtn} ${mode === "grid" ? styles.modeBtnActive : ""}`}
-            onClick={() => setMode("grid")}
+            className={`${styles.modeBtn} ${viewMode === "grid" ? styles.modeBtnActive : ""}`}
+            onClick={() => setViewMode("grid")}
           >
             Full grid
           </button>
@@ -91,14 +158,17 @@ export default function GalleryDeck({ captions }: Props) {
         <span className={styles.deckCount}>{statLabel}</span>
       </div>
 
-      {mode === "deck" && current && (
+      {viewMode === "deck" && current && (
         <article className={styles.deckCard}>
           {current.image?.url && (
             <div className={styles.deckImage}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={current.image.url}
                 alt={current.image.image_description ?? "Caption image"}
+                fill
+                sizes="(max-width: 860px) 100vw, 560px"
+                style={{ objectFit: "cover" }}
+                priority
               />
             </div>
           )}
@@ -136,16 +206,18 @@ export default function GalleryDeck({ captions }: Props) {
         </article>
       )}
 
-      {(mode === "grid" || !current) && (
+      {(viewMode === "grid" || !current) && (
         <section className={styles.gallery}>
-          {captions.map((caption) => (
+          {allCaptions.map((caption) => (
             <article key={caption.id} className={styles.card}>
               {caption.image?.url && (
                 <div className={styles.cardImage}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
                     src={caption.image.url}
                     alt={caption.image.image_description ?? "Caption image"}
+                    fill
+                    sizes="(max-width: 640px) 50vw, 280px"
+                    style={{ objectFit: "cover" }}
                   />
                 </div>
               )}
@@ -164,6 +236,19 @@ export default function GalleryDeck({ captions }: Props) {
               </div>
             </article>
           ))}
+
+          {/* Skeleton cards while loading next page */}
+          {loadingMore && Array.from({ length: 6 }).map((_, i) => (
+            <GalleryCardSkeleton key={`skel-${i}`} />
+          ))}
+
+          {/* Infinite scroll sentinel */}
+          <div ref={sentinelRef} style={{ height: 1 }} aria-hidden="true" />
+
+          {/* End-of-results message */}
+          {!hasMore && allCaptions.length > 0 && (
+            <p className={styles.endLabel}>All captions loaded</p>
+          )}
         </section>
       )}
     </section>

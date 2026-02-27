@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import styles from "./page.module.css";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -10,11 +11,16 @@ const hasSupabaseEnv =
 
 /* ── types ── */
 
+interface CaptionImage {
+  url: string | null;
+  image_description: string | null;
+}
+
 interface FeaturedCaption {
   id: string;
   content: string | null;
   like_count: number;
-  images: { url: string | null; image_description: string | null } | null;
+  images: CaptionImage | CaptionImage[] | null;
   humor_flavors: { slug: string } | null;
 }
 
@@ -33,6 +39,9 @@ interface ContextRow {
 
 /* ── data fetchers ── */
 
+const getCaptionImage = (images: CaptionImage | CaptionImage[] | null) =>
+  Array.isArray(images) ? images[0] ?? null : images;
+
 async function getFeaturedCaptions(): Promise<FeaturedCaption[]> {
   if (!hasSupabaseEnv) return [];
   const { data } = await supabase
@@ -40,8 +49,11 @@ async function getFeaturedCaptions(): Promise<FeaturedCaption[]> {
     .select("id, content, like_count, images(url, image_description), humor_flavors(slug)")
     .eq("is_public", true)
     .order("like_count", { ascending: false })
-    .limit(4);
-  return (data ?? []) as unknown as FeaturedCaption[];
+    .limit(12);
+
+  return ((data ?? []) as unknown as FeaturedCaption[])
+    .filter((caption) => Boolean(getCaptionImage(caption.images)?.url))
+    .slice(0, 4);
 }
 
 async function getRandomTerm(): Promise<TermRow | null> {
@@ -100,6 +112,7 @@ export default async function Home() {
 
   const lead = featured[0] ?? null;
   const secondaries = featured.slice(1, 4);
+  const leadImage = lead ? getCaptionImage(lead.images) : null;
   const ctxTags = (context?.community_context_tags ?? []).map((t) =>
     typeof t === "object" && t !== null ? (t as { name: string }).name : String(t)
   );
@@ -179,12 +192,15 @@ export default async function Home() {
 
             <div className={styles.pickGrid}>
               <Link href="/caption-lab" className={styles.leadCard}>
-                {lead.images?.url && (
+                {leadImage?.url && (
                   <div className={styles.leadImage}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={lead.images.url}
-                      alt={lead.images.image_description ?? "Featured caption"}
+                    <Image
+                      src={leadImage.url}
+                      alt={leadImage.image_description ?? "Featured caption"}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 600px"
+                      style={{ objectFit: "cover" }}
+                      priority
                     />
                   </div>
                 )}
@@ -208,9 +224,7 @@ export default async function Home() {
               {secondaries.length > 0 && (
                 <div className={styles.secondaryStack}>
                   {secondaries.map((cap) => {
-                    const img = Array.isArray(cap.images)
-                      ? (cap.images as { url: string | null }[])[0]
-                      : cap.images;
+                    const img = getCaptionImage(cap.images);
                     return (
                       <Link
                         href="/caption-lab"
@@ -219,13 +233,12 @@ export default async function Home() {
                       >
                         {img?.url && (
                           <div className={styles.secondaryImage}>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
+                            <Image
                               src={img.url}
-                              alt={
-                                (img as { image_description?: string | null })
-                                  ?.image_description ?? "Caption image"
-                              }
+                              alt={img.image_description ?? "Caption image"}
+                              fill
+                              sizes="80px"
+                              style={{ objectFit: "cover" }}
                             />
                           </div>
                         )}

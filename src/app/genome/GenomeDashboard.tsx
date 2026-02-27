@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import styles from "./page.module.css";
 import type {
   FlavorStat,
@@ -151,6 +152,17 @@ export default function GenomeDashboard({
                   </div>
                   {isOpen && (
                     <div className={styles.flavorExpanded}>
+                      {f.topImageUrl && (
+                        <div className={styles.flavorMedia}>
+                          <Image
+                            src={f.topImageUrl}
+                            alt={f.topImageAlt ?? `${f.slug} caption image`}
+                            fill
+                            sizes="(max-width: 640px) 100vw, 280px"
+                            style={{ objectFit: "cover" }}
+                          />
+                        </div>
+                      )}
                       {f.description && <p className={styles.flavorDesc}>{f.description}</p>}
                       {f.topCaption && (
                         <p className={styles.flavorQuote}>
@@ -200,8 +212,13 @@ export default function GenomeDashboard({
               <div key={celeb.id} className={styles.celebCard}>
                 {celeb.url && (
                   <div className={styles.celebImg}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={celeb.url} alt={celeb.celebrity_recognition} />
+                    <Image
+                      src={celeb.url}
+                      alt={celeb.celebrity_recognition}
+                      fill
+                      sizes="(max-width: 640px) 50vw, 280px"
+                      style={{ objectFit: "cover" }}
+                    />
                   </div>
                 )}
                 <div className={styles.celebBody}>
@@ -277,8 +294,13 @@ export default function GenomeDashboard({
               <div key={hit.captionId} className={styles.archiveCard}>
                 {hit.imageUrl && (
                   <div className={styles.archiveImg}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={hit.imageUrl} alt="Caption image" />
+                    <Image
+                      src={hit.imageUrl}
+                      alt="Caption image"
+                      fill
+                      sizes="(max-width: 640px) 100vw, 300px"
+                      style={{ objectFit: "cover" }}
+                    />
                   </div>
                 )}
                 <div className={styles.archiveBody}>
