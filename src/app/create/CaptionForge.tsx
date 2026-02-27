@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import styles from "./page.module.css";
 import { createClient } from "@/lib/supabase/client";
+import PinballGame from "./PinballGame";
 
 /* ── types ── */
 
@@ -144,6 +145,7 @@ export default function CaptionForge({
   const [generatingForGallery, setGeneratingForGallery] = useState(false);
   const [submitSuccessPulse, setSubmitSuccessPulse] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [showGame, setShowGame] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const submitPulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -193,6 +195,11 @@ export default function CaptionForge({
       if (uploadPreview?.startsWith("blob:")) URL.revokeObjectURL(uploadPreview);
     };
   }, [uploadPreview]);
+
+  /* ── reset game when generation finishes ── */
+  useEffect(() => {
+    if (!isGenerating) setShowGame(false);
+  }, [isGenerating]);
 
   /* ── upload logic ── */
 
@@ -704,19 +711,52 @@ export default function CaptionForge({
       {/* ── Full-screen generation overlay ── */}
       {isGenerating && (
         <div className={styles.generationOverlay} role="status" aria-live="polite">
+          {(uploadPreview ?? imageUrl) && (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={uploadPreview ?? imageUrl ?? ""}
+              alt=""
+              aria-hidden="true"
+              className={styles.generationBgImage}
+            />
+          )}
           <div className={styles.generationScrim} />
-          <div className={styles.generationCenter}>
-            <div className={styles.generationVisual}>
-              <div className={styles.generationHalo} />
-              <div className={styles.generationRing} />
-              <div className={styles.generationDot} />
+          {showGame ? (
+            <>
+              <div className={styles.generationGameWrap}>
+                <PinballGame onClose={() => setShowGame(false)} />
+              </div>
+              <div className={styles.generationStatusBadge}>Generating captions…</div>
+            </>
+          ) : (
+            <div className={styles.generationCenter}>
+              <div className={styles.generationVisual}>
+                <div className={styles.generationHalo} />
+                {(uploadPreview ?? imageUrl) && (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={uploadPreview ?? imageUrl ?? ""}
+                    alt="Source image being processed"
+                    className={styles.generationImageThumb}
+                  />
+                )}
+                <div className={styles.generationRing} />
+                <div className={styles.generationDot} />
+              </div>
+              <p className={styles.generationEyebrow}>Studio in progress</p>
+              <p className={styles.generationTitle}>{generationLabel}</p>
+              <p className={styles.generationText}>
+                Building a fresh caption set with tone and context baked in.
+              </p>
+              <button
+                type="button"
+                className={styles.generationPlayBtn}
+                onClick={() => setShowGame(true)}
+              >
+                Play while you wait
+              </button>
             </div>
-            <p className={styles.generationEyebrow}>Studio in progress</p>
-            <p className={styles.generationTitle}>{generationLabel}</p>
-            <p className={styles.generationText}>
-              Building a fresh caption set with tone and context baked in.
-            </p>
-          </div>
+          )}
         </div>
       )}
 
