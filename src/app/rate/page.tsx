@@ -101,6 +101,7 @@ export default async function RatePage() {
     .from("captions")
     .select("id, content, humor_flavors(slug), images(url, image_description)")
     .eq("is_public", true)
+    .not("content", "is", null)
     .order("created_datetime_utc", { ascending: false })
     .limit(200);
 

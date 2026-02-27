@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import styles from "./page.module.css";
 import { createClient } from "@/lib/supabase/client";
@@ -12,6 +13,7 @@ interface ImageRow {
   url: string | null;
   image_description: string | null;
   is_common_use: boolean | null;
+  top_caption: string | null;
 }
 
 interface TermRow {
@@ -30,7 +32,13 @@ interface CaptionForgeProps {
 }
 
 type ImageSource =
-  | { kind: "gallery"; imageId: string; url: string; description: string }
+  | {
+      kind: "gallery";
+      imageId: string;
+      url: string;
+      description: string;
+      topCaption: string | null;
+    }
   | { kind: "upload"; imageId: string; cdnUrl: string }
   | null;
 
@@ -47,6 +55,49 @@ interface UploadResult {
   imageId: string;
   cdnUrl: string;
   captions: CaptionRecord[];
+}
+
+/* ── helpers ── */
+
+/**
+ * Creates a displayable preview URL for the given file.
+ * HEIC files can't be rendered as blob URLs in Chrome/Firefox, so we:
+ *   1. Try createImageBitmap → canvas (works natively on Safari/macOS)
+ *   2. Fall back to heic2any (pure-JS decoder, works on Chrome/Firefox)
+ * The resulting blob URL is cleaned up the same way as any other preview.
+ */
+async function createDisplayablePreview(file: File): Promise<string | null> {
+  if (file.type === "image/heic" || file.type === "image/heic-sequence") {
+    // Safari can decode HEIC natively via createImageBitmap
+    try {
+      const bitmap = await createImageBitmap(file);
+      const canvas = document.createElement("canvas");
+      const max = 1200;
+      const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(bitmap.height * scale);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("no 2d context");
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close();
+      return canvas.toDataURL("image/jpeg", 0.85);
+    } catch {
+      // Chrome/Firefox: fall back to heic2any (loaded lazily — only when needed)
+      try {
+        const heic2any = (await import("heic2any")).default;
+        const result = await heic2any({
+          blob: file,
+          toType: "image/jpeg",
+          quality: 0.85,
+        });
+        const jpegBlob = Array.isArray(result) ? result[0] : result;
+        return URL.createObjectURL(jpegBlob);
+      } catch {
+        return null;
+      }
+    }
+  }
+  return URL.createObjectURL(file);
 }
 
 /* ── constants ── */
@@ -108,14 +159,13 @@ export default function CaptionForge({
   const isProcessing = uploadPhase === "uploading" || isGenerating;
   const suggestionsLabel =
     imageSource?.kind === "upload" ? "AI suggestions" : "Sample captions";
-  const generationBackdrop = useMemo(() => {
-    if (uploadPhase === "generating" && uploadPreview) return uploadPreview;
-    return imageUrl ?? uploadPreview;
-  }, [imageUrl, uploadPhase, uploadPreview]);
   const generationLabel =
     uploadPhase === "generating"
       ? PHASE_LABELS.generating
       : "Generating fresh captions for this image...";
+  const selectedCaption =
+    caption.trim() ||
+    (imageSource?.kind === "gallery" ? imageSource.topCaption?.trim() ?? "" : "");
   const currentVibeText =
     currentVibe && currentVibe.length > 320
       ? `${currentVibe.slice(0, 320)}...`
@@ -139,7 +189,8 @@ export default function CaptionForge({
   /* ── cleanup object URLs on unmount ── */
   useEffect(() => {
     return () => {
-      if (uploadPreview) URL.revokeObjectURL(uploadPreview);
+      // Only revoke actual blob object URLs; data URLs need no cleanup
+      if (uploadPreview?.startsWith("blob:")) URL.revokeObjectURL(uploadPreview);
     };
   }, [uploadPreview]);
 
@@ -156,7 +207,7 @@ export default function CaptionForge({
   };
 
   const resetUpload = useCallback(() => {
-    if (uploadPreview) URL.revokeObjectURL(uploadPreview);
+    if (uploadPreview?.startsWith("blob:")) URL.revokeObjectURL(uploadPreview);
     setImageSource(null);
     setUploadPhase("idle");
     setUploadError(null);
@@ -175,10 +226,11 @@ export default function CaptionForge({
       return;
     }
 
-    const objectUrl = URL.createObjectURL(file);
-    setUploadPreview(objectUrl);
     setUploadError(null);
     setUploadPhase("uploading");
+    // Fire preview conversion in the background — for HEIC this takes 2–5 s on
+    // Chrome/Firefox (heic2any), so we don't block the overlay on it.
+    createDisplayablePreview(file).then((url) => setUploadPreview(url));
 
     try {
       const formData = new FormData();
@@ -278,8 +330,10 @@ export default function CaptionForge({
         imageId: image.id,
         url: image.url ?? "",
         description: image.image_description ?? "",
+        topCaption: image.top_caption,
       });
       setGeneratedCaptions([]);
+      setCaption(image.top_caption ?? "");
       setUploadPhase("idle");
       setUploadError(null);
       setShowGallery(false);
@@ -404,9 +458,6 @@ export default function CaptionForge({
         {/* ── Uploading state ── */}
         {uploadPhase === "uploading" && (
           <div className={styles.processing}>
-            {uploadPreview && (
-              <img src={uploadPreview} alt="Preview" className={styles.uploadPreviewImg} />
-            )}
             <div className={styles.shimmerBar} />
             <div className={styles.spinner} />
             <span className={styles.phaseLabel}>{PHASE_LABELS.uploading}</span>
@@ -416,9 +467,6 @@ export default function CaptionForge({
         {/* ── Upload error ── */}
         {uploadPhase === "error" && (
           <div className={styles.errorState}>
-            {uploadPreview && (
-              <img src={uploadPreview} alt="Preview" className={styles.uploadPreviewImg} />
-            )}
             <p className={styles.errorText}>{uploadError}</p>
             <button className={styles.secondaryButton} type="button" onClick={resetUpload}>
               Try again
@@ -429,9 +477,13 @@ export default function CaptionForge({
         {/* ── Selected image banner ── */}
         {imageSource !== null && !isProcessing && (
           <div className={styles.selectedImageBanner}>
-            {imageUrl && <img src={imageUrl} alt="Selected" />}
             <div className={styles.bannerBody}>
               <p className={styles.bannerLabel}>Image ready</p>
+              {selectedCaption && (
+                <p className={styles.bannerCaption}>
+                  &ldquo;{selectedCaption}&rdquo;
+                </p>
+              )}
               <div className={styles.bannerActions}>
                 {imageSource.kind === "gallery" && (
                   <button
@@ -486,16 +538,25 @@ export default function CaptionForge({
                   >
                     <div className={styles.imageThumb}>
                       {image.url && (
-                        <img
+                        <Image
                           src={image.url}
                           alt={image.image_description ?? "Gallery image"}
-                          className={styles.imageThumbImg}
+                          fill
+                          sizes="(max-width: 640px) 50vw, 180px"
+                          style={{ objectFit: "contain" }}
                         />
                       )}
                     </div>
                     <div className={styles.imageMeta}>
-                      {(image.image_description ?? "No description").slice(0, 64)}
-                      {(image.image_description ?? "").length > 64 ? "..." : ""}
+                      <p className={styles.imageCaption}>
+                        &ldquo;{image.top_caption ?? "Caption unavailable."}&rdquo;
+                      </p>
+                      {image.image_description && (
+                        <p className={styles.imageDescription}>
+                          {(image.image_description ?? "").slice(0, 64)}
+                          {(image.image_description ?? "").length > 64 ? "..." : ""}
+                        </p>
+                      )}
                     </div>
                   </button>
                 ))}
@@ -559,7 +620,13 @@ export default function CaptionForge({
           <h3>Live preview + caption picks</h3>
           {imageUrl ? (
             <div className={styles.previewImageFrame}>
-              <img src={imageUrl} alt="Selected image preview" className={styles.previewImage} />
+              <Image
+                src={imageUrl}
+                alt="Selected image preview"
+                fill
+                sizes="(max-width: 768px) 100vw, 600px"
+                style={{ objectFit: "contain" }}
+              />
             </div>
           ) : (
             <div className={styles.previewImageEmpty}>
@@ -637,24 +704,9 @@ export default function CaptionForge({
       {/* ── Full-screen generation overlay ── */}
       {isGenerating && (
         <div className={styles.generationOverlay} role="status" aria-live="polite">
-          {generationBackdrop && (
-            <div
-              className={styles.generationBackdrop}
-              style={{ backgroundImage: `url(${generationBackdrop})` }}
-            />
-          )}
           <div className={styles.generationScrim} />
           <div className={styles.generationCenter}>
             <div className={styles.generationVisual}>
-              {generationBackdrop && (
-                <div className={styles.generationImageFrame}>
-                  <img
-                    src={generationBackdrop}
-                    alt="Generating preview"
-                    className={styles.generationImage}
-                  />
-                </div>
-              )}
               <div className={styles.generationHalo} />
               <div className={styles.generationRing} />
               <div className={styles.generationDot} />

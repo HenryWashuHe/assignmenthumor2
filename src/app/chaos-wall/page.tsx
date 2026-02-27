@@ -26,6 +26,7 @@ async function getCaptions(): Promise<CaptionRow[]> {
     .from("captions")
     .select("id, content, like_count, humor_flavors(slug), images(url, image_description)")
     .eq("is_public", true)
+    .not("content", "is", null)
     .order("created_datetime_utc", { ascending: false })
     .limit(240);
   if (error || !data) return [];
