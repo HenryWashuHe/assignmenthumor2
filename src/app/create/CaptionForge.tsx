@@ -399,6 +399,8 @@ export default function CaptionForge({
       is_public: false,
       profile_id: userId,
       image_id: imageSource.imageId,
+      created_by_user_id: userId,
+      modified_by_user_id: userId,
     });
 
     if (error) {
