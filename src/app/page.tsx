@@ -147,6 +147,40 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* ── Onboarding guide ── */}
+        <section className={styles.onboarding}>
+          <h2 className={styles.onboardingHeading}>How it works</h2>
+          <div className={styles.onboardingSteps}>
+            <div className={styles.onboardingStep}>
+              <span className={styles.stepNumber}>1</span>
+              <div className={styles.stepContent}>
+                <strong className={styles.stepTitle}>Pick an image</strong>
+                <p className={styles.stepDesc}>
+                  Head to the <Link href="/create" className={styles.stepLink}>Studio</Link> and upload or choose a photo.
+                </p>
+              </div>
+            </div>
+            <div className={styles.onboardingStep}>
+              <span className={styles.stepNumber}>2</span>
+              <div className={styles.stepContent}>
+                <strong className={styles.stepTitle}>Generate a caption</strong>
+                <p className={styles.stepDesc}>
+                  AI writes the punchline for you. Play a mini-game while you wait!
+                </p>
+              </div>
+            </div>
+            <div className={styles.onboardingStep}>
+              <span className={styles.stepNumber}>3</span>
+              <div className={styles.stepContent}>
+                <strong className={styles.stepTitle}>Rate &amp; explore</strong>
+                <p className={styles.stepDesc}>
+                  Vote on the <Link href="/chaos-wall" className={styles.stepLink}>Chaos Wall</Link> or <Link href="/rate" className={styles.stepLink}>swipe-rate</Link> captions — even with hand gestures.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ── Sidebar row: Term of the day + Context ── */}
         <section className={styles.asideRow}>
           {term && (

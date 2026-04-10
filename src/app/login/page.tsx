@@ -5,10 +5,27 @@ import { useState, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 import styles from "./page.module.css";
 
-const ERROR_MESSAGES: Record<string, string> = {
-  domain:
-    "Only @columbia.edu and @barnard.edu accounts are allowed. Please sign in with your university email.",
-  auth_failed: "Authentication failed. Please try again.",
+interface ErrorInfo {
+  title: string;
+  message: string;
+}
+
+const ERROR_INFO: Record<string, ErrorInfo> = {
+  domain: {
+    title: "Wrong account type",
+    message:
+      "Only @columbia.edu and @barnard.edu Google accounts can sign in. Switch to your university email and try again.",
+  },
+  auth_failed: {
+    title: "Sign-in didn\u2019t go through",
+    message:
+      "This happens sometimes\u200a\u2014\u200athe site isn\u2019t broken! A retry usually fixes it. If it keeps happening, try a different browser or clear your cookies.",
+  },
+};
+
+const DEFAULT_ERROR: ErrorInfo = {
+  title: "Something went wrong",
+  message: "An unexpected error occurred. Please try again.",
 };
 
 function LoginForm() {
@@ -65,11 +82,24 @@ function LoginForm() {
             </span>
           </div>
 
-          {errorParam && (
-            <div className={styles.errorBanner}>
-              {ERROR_MESSAGES[errorParam] ?? "Something went wrong. Try again."}
-            </div>
-          )}
+          {errorParam && (() => {
+            const info = ERROR_INFO[errorParam] ?? DEFAULT_ERROR;
+            return (
+              <div className={styles.errorBanner}>
+                <div className={styles.errorIcon}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                </div>
+                <div className={styles.errorText}>
+                  <strong className={styles.errorTitle}>{info.title}</strong>
+                  <span className={styles.errorDesc}>{info.message}</span>
+                </div>
+              </div>
+            );
+          })()}
 
           <button
             className={styles.googleButton}

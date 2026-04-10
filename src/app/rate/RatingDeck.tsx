@@ -70,6 +70,10 @@ export default function RatingDeck({
   const [tutorialDone, setTutorialDone] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [cardGlow, setCardGlow] = useState<"left" | "right" | null>(null);
+  const [gestureCalloutDismissed, setGestureCalloutDismissed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("gesture_callout_dismissed") === "1";
+  });
 
   // Synchronous lock — React state batching means isSubmitting can be stale
   // in closures. This ref updates instantly, preventing double-submit.
@@ -272,7 +276,16 @@ export default function RatingDeck({
     if (next && !tutorialDone) {
       setShowTutorial(true);
     }
-  }, [gestureMode, tutorialDone]);
+    if (next && !gestureCalloutDismissed) {
+      setGestureCalloutDismissed(true);
+      localStorage.setItem("gesture_callout_dismissed", "1");
+    }
+  }, [gestureMode, tutorialDone, gestureCalloutDismissed]);
+
+  const dismissGestureCallout = useCallback(() => {
+    setGestureCalloutDismissed(true);
+    localStorage.setItem("gesture_callout_dismissed", "1");
+  }, []);
 
   /* keyboard shortcuts */
   useEffect(() => {
@@ -451,6 +464,38 @@ export default function RatingDeck({
           Funny
         </button>
       </div>
+
+      {/* gesture discovery callout */}
+      {!gestureMode && !gestureCalloutDismissed && (
+        <div className={gStyles.gestureCallout}>
+          <div className={gStyles.gestureCalloutBody}>
+            <span className={gStyles.gestureCalloutIcon} aria-hidden="true">🖐</span>
+            <div className={gStyles.gestureCalloutText}>
+              <strong className={gStyles.gestureCalloutTitle}>Try hands-free rating!</strong>
+              <span className={gStyles.gestureCalloutDesc}>
+                Wave your hand in front of the camera to vote.
+                Hold your palm centered, then swipe right for funny or left for not funny.
+                A quick, deliberate wave works best.
+              </span>
+            </div>
+            <button
+              type="button"
+              className={gStyles.gestureCalloutDismiss}
+              onClick={dismissGestureCallout}
+              aria-label="Dismiss gesture tip"
+            >
+              &times;
+            </button>
+          </div>
+          <button
+            type="button"
+            className={gStyles.gestureCalloutCta}
+            onClick={toggleGestureMode}
+          >
+            Enable gestures
+          </button>
+        </div>
+      )}
 
       {/* gesture toggle */}
       <div className={styles.gestureRow}>

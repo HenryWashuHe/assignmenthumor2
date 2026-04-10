@@ -62,15 +62,46 @@
 }
 
 .errorBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
   background: rgba(217, 58, 31, 0.06);
   border: 1px solid rgba(217, 58, 31, 0.3);
-  border-radius: var(--radius-sm);
-  color: var(--accent);
-  padding: 0.7rem 1rem;
-  font-size: 0.85rem;
-  font-weight: 500;
+  border-radius: var(--radius-md);
+  padding: 1rem 1.1rem;
   margin-bottom: 1.25rem;
   text-align: left;
+  animation: bannerIn 350ms ease-out;
+}
+
+.errorIcon {
+  flex-shrink: 0;
+  color: var(--accent);
+  margin-top: 1px;
+}
+
+.errorText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.errorTitle {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.errorDesc {
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--ink-secondary);
+}
+
+@keyframes bannerIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .googleButton {

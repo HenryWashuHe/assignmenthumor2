@@ -12,6 +12,18 @@ export async function GET(request: NextRequest) {
   const nextCookie = request.cookies.get("auth_next")?.value;
   const next = nextCookie ? decodeURIComponent(nextCookie) : "/";
 
+  /* OAuth provider-level error (e.g. user denied consent) */
+  const oauthError = searchParams.get("error");
+  if (oauthError) {
+    const desc = searchParams.get("error_description") ?? oauthError;
+    console.error("[auth/callback] OAuth provider error:", desc);
+    const response = NextResponse.redirect(
+      `${siteUrl}/login?error=auth_failed`
+    );
+    response.cookies.delete("auth_next");
+    return response;
+  }
+
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -38,6 +50,10 @@ export async function GET(request: NextRequest) {
       response.cookies.delete("auth_next");
       return response;
     }
+
+    console.error("[auth/callback] Code exchange failed:", error.message);
+  } else {
+    console.error("[auth/callback] No code or error param in callback URL");
   }
 
   const response = NextResponse.redirect(`${siteUrl}/login?error=auth_failed`);
