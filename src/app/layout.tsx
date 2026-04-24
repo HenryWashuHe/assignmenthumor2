@@ -70,6 +70,10 @@ export default async function RootLayout({
               display: "flex",
               alignItems: "center",
               gap: "28px",
+              overflowX: "auto",
+              WebkitOverflowScrolling: "touch",
+              msOverflowStyle: "none",
+              scrollbarWidth: "none",
             }}
           >
             {navItems.map((item) => (
@@ -82,6 +86,8 @@ export default async function RootLayout({
                   color: "var(--ink-secondary)",
                   transition: "color 150ms",
                   letterSpacing: "0.01em",
+                  flexShrink: 0,
+                  whiteSpace: "nowrap",
                 }}
               >
                 {item.label}

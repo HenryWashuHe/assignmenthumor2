@@ -162,6 +162,7 @@ export default function RatingDeck({
           vote_value: value,
           profile_id: profileId,
           caption_id: current.id,
+          created_datetime_utc: new Date().toISOString(),
           created_by_user_id: profileId,
           modified_by_user_id: profileId,
         })

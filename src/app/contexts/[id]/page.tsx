@@ -157,7 +157,7 @@ export default async function ContextDetail({
       <div className={styles.page}>
         <main className={styles.main}>
           <Link href="/" className={styles.back}>
-            ← Back to stormboard
+            ← Back to home
           </Link>
           <div className={styles.empty}>
             No community context found for id {contextId}. Try another context
@@ -194,7 +194,7 @@ export default async function ContextDetail({
     <div className={styles.page}>
       <main className={styles.main}>
         <Link href="/" className={styles.back}>
-          ← Back to stormboard
+          ← Back to home
         </Link>
 
         <section className={styles.contextCard}>
